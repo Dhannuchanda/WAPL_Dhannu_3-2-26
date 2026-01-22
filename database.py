@@ -6,7 +6,12 @@ from contextlib import contextmanager
 import secrets
 import string
 
-DB_NAME = 'wapl.db'
+
+# Use /tmp directory on Vercel (serverless), current directory locally
+if os.environ.get('VERCEL'):
+    DB_NAME = '/tmp/wapl.db'
+else:
+    DB_NAME = 'wapl.db'
 
 @contextmanager
 def get_db_connection():

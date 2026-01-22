@@ -24,7 +24,8 @@ from database import init_db, db
 from routes import auth_bp, student_bp, hr_bp, admin_bp, public_bp
 
 # Initialize database
-init_db()
+# init_db()  # ← DISABLE THIS - causes crash on Vercel
+
 
 # Register blueprints
 app.register_blueprint(auth_bp)
@@ -52,3 +53,39 @@ def uploaded_file(filename):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+# ==================== VERCEL SERVERLESS CONFIGURATION ====================
+
+import os
+
+# Configure Flask for Vercel serverless environment
+if os.environ.get('VERCEL'):
+    # Running on Vercel
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_FILE_DIR'] = '/tmp/flask_session'
+    
+    # Create session directory
+    try:
+        os.makedirs('/tmp/flask_session', exist_ok=True)
+    except:
+        pass
+    
+    # Don't initialize database on Vercel (will reset on every deploy)
+    print("⚠️ Running on Vercel - Database initialization skipped")
+    
+    # Vercel needs this
+    application = app
+    
+else:
+    # Running locally
+    if __name__ == '__main__':
+        # Initialize database only for local development
+        from database import init_db
+        init_db()
+        
+        # Run the Flask dev server
+        app.run(
+            host='0.0.0.0',
+            port=5000,
+            debug=True
+        )
