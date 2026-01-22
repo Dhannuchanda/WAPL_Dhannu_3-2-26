@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Recruitment Tracking - WAPL Admin{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin/recruitment.css') }}">
+{% endblock %}
+
+{% block navbar %}
+<nav class="navbar">
+    <div class="container">
+        <a href="{% if current_user and current_user.role == 'admin' %}/secure-admin-panel-wapl/dashboard{% elif current_user and current_user.role == 'hr' %}/hr/dashboard{% else %}/student/dashboard{% endif %}" class="navbar-brand" title="Home">
+            <video class="logo-video" autoplay loop muted playsinline>
+                <source src="/uploads/pics/logo.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </a>
+        <div class="navbar-menu">
+            <a href="/secure-admin-panel-wapl/dashboard">Dashboard</a>
+            <a href="/secure-admin-panel-wapl/students">Students</a>
+            <a href="/secure-admin-panel-wapl/hrs">HRs</a>
+            <a href="/secure-admin-panel-wapl/assign-students">Assign Students</a>
+            <a href="/secure-admin-panel-wapl/domains">Domains</a>
+            <a href="/secure-admin-panel-wapl/certificates">Certificates</a>
+            <a href="/secure-admin-panel-wapl/recruitment" class="active">Recruitment</a>
+            <button onclick="logout()" class="btn btn-link">Logout</button>
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <h1>Recruitment Tracking</h1>
+    
+    <div class="filters" style="margin-bottom: 2rem;">
+        <select id="statusFilter" onchange="applyFilters()">
+            <option value="">All Statuses</option>
+            <option value="viewed">Viewed</option>
+            <option value="shortlisted">Shortlisted</option>
+            <option value="interview_scheduled">Interview Scheduled</option>
+            <option value="selected">Selected</option>
+            <option value="rejected">Rejected</option>
+        </select>
+        <input type="text" id="searchBox" placeholder="Search by student name, HR, or company..." onkeyup="applyFilters()">
+    </div>
+    
+    <div id="recruitmentStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+        <div class="stat-card">
+            <h3 id="totalCount">0</h3>
+            <p>Total Trackings</p>
+        </div>
+        <div class="stat-card status-viewed">
+            <h3 id="viewedCount">0</h3>
+            <p>Viewed</p>
+        </div>
+        <div class="stat-card status-shortlisted">
+            <h3 id="shortlistedCount">0</h3>
+            <p>Shortlisted</p>
+        </div>
+        <div class="stat-card status-interview">
+            <h3 id="interviewCount">0</h3>
+            <p>Interview Scheduled</p>
+        </div>
+        <div class="stat-card status-selected">
+            <h3 id="selectedCount">0</h3>
+            <p>Selected</p>
+        </div>
+        <div class="stat-card status-rejected">
+            <h3 id="rejectedCount">0</h3>
+            <p>Rejected</p>
+        </div>
+    </div>
+    
+    <div id="recruitmentTable">
+        <p>Loading recruitment data...</p>
+    </div>
+</div>
+
+<script>
+let allRecruitment = [];
+
+async function loadRecruitment() {
+    try {
+        const response = await fetch('/api/admin/recruitment-status');
+        const data = await response.json();
+        
+        if (response.ok) {
+            allRecruitment = data;
+            calculateStats(data);
+            renderRecruitment(data);
+        } else {
+            document.getElementById('recruitmentTable').innerHTML = '<p>Error loading recruitment data</p>';
+        }
+    } catch (error) {
+        document.getElementById('recruitmentTable').innerHTML = '<p>Error loading recruitment data</p>';
+    }
+}
+
+function calculateStats(data) {
+    const stats = {
+        viewed: 0,
+        shortlisted: 0,
+        interview_scheduled: 0,
+        selected: 0,
+        rejected: 0
+    };
+    
+    data.forEach(item => {
+        stats[item.status] = (stats[item.status] || 0) + 1;
+    });
+    
+    document.getElementById('totalCount').textContent = data.length;
+    document.getElementById('viewedCount').textContent = stats.viewed;
+    document.getElementById('shortlistedCount').textContent = stats.shortlisted;
+    document.getElementById('interviewCount').textContent = stats.interview_scheduled;
+    document.getElementById('selectedCount').textContent = stats.selected;
+    document.getElementById('rejectedCount').textContent = stats.rejected;
+}
+
+function renderRecruitment(data) {
+    if (data.length === 0) {
+        document.getElementById('recruitmentTable').innerHTML = '<p>No recruitment activity yet</p>';
+        return;
+    }
+    
+    let html = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>WAPL ID</th>
+                    <th>Domain</th>
+                    <th>HR Name</th>
+                    <th>Company</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                    <th>Last Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    data.forEach(item => {
+        const statusClass = getStatusClass(item.status);
+        const statusText = formatStatus(item.status);
+        const updatedDate = new Date(item.updated_at).toLocaleDateString();
+        
+        html += `
+            <tr>
+                <td>
+                    ${item.profile_pic ? `<img src="/${item.profile_pic}" alt="${item.student_name}" style="width: 30px; height: 30px; border-radius: 50%; vertical-align: middle; margin-right: 0.5rem;">` : ''}
+                    ${item.student_name}
+                </td>
+                <td>${item.wapl_id}</td>
+                <td>${item.domain_name || 'N/A'}</td>
+                <td>${item.hr_name}</td>
+                <td>${item.company_name}</td>
+                <td><span class="status-badge-tiny ${statusClass}">${statusText}</span></td>
+                <td>${item.notes || '-'}</td>
+                <td>${updatedDate}</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    document.getElementById('recruitmentTable').innerHTML = html;
+}
+
+function formatStatus(status) {
+    const statusMap = {
+        'viewed': 'Viewed',
+        'shortlisted': 'Shortlisted',
+        'interview_scheduled': 'Interview Scheduled',
+        'selected': 'Selected',
+        'rejected': 'Rejected'
+    };
+    return statusMap[status] || status;
+}
+
+function getStatusClass(status) {
+    const classMap = {
+        'viewed': 'status-viewed',
+        'shortlisted': 'status-shortlisted',
+        'interview_scheduled': 'status-interview',
+        'selected': 'status-selected',
+        'rejected': 'status-rejected'
+    };
+    return classMap[status] || '';
+}
+
+function applyFilters() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const searchText = document.getElementById('searchBox').value.toLowerCase();
+    
+    let filtered = allRecruitment;
+    
+    if (statusFilter) {
+        filtered = filtered.filter(item => item.status === statusFilter);
+    }
+    
+    if (searchText) {
+        filtered = filtered.filter(item => 
+            item.student_name.toLowerCase().includes(searchText) ||
+            item.hr_name.toLowerCase().includes(searchText) ||
+            item.company_name.toLowerCase().includes(searchText) ||
+            item.wapl_id.toLowerCase().includes(searchText)
+        );
+    }
+    
+    renderRecruitment(filtered);
+}
+
+async function logout() {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/secure-admin-panel-wapl/login';
+    } catch (error) {
+        window.location.href = '/secure-admin-panel-wapl/login';
+    }
+}
+
+loadRecruitment();
+</script>
+{% endblock %}

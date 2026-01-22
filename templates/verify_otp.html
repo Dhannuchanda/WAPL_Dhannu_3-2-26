@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP - WAPL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .otp-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 5px;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+            margin-bottom: 10px;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: #5568d3;
+        }
+        .btn-secondary {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #e0e0e0;
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+        .error-message {
+            background-color: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+        .success-message {
+            background-color: #efe;
+            color: #3c3;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+        .info-box {
+            background-color: #e7f3ff;
+            color: #004085;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="otp-container">
+        <h2>Verify OTP</h2>
+        <p class="subtitle">Please enter the OTP sent to your email</p>
+        
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+        
+        <div class="info-box">
+            📧 Check your email inbox for the 6-digit OTP code. It's valid for 10 minutes.
+        </div>
+        
+        <form id="otpForm">
+            <div class="form-group">
+                <label for="otpCode">OTP Code *</label>
+                <input type="text" id="otpCode" placeholder="000000" maxlength="6" required>
+            </div>
+            
+            <button type="submit" id="verifyBtn" class="btn btn-primary">Verify OTP</button>
+            <button type="button" id="resendBtn" class="btn btn-secondary">Resend OTP</button>
+        </form>
+        
+        <div class="back-link">
+            <a href="/register">← Back to Registration</a>
+        </div>
+    </div>
+
+    <script>
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        // Handle OTP verification
+        document.getElementById('otpForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userId = sessionStorage.getItem('registration_user_id');
+            const otpCode = document.getElementById('otpCode').value.trim();
+            
+            if (!userId) {
+                showError('Session expired. Please register again.');
+                setTimeout(() => {
+                    window.location.href = '/register';
+                }, 2000);
+                return;
+            }
+            
+            if (!otpCode || otpCode.length !== 6) {
+                showError('Please enter a valid 6-digit OTP');
+                return;
+            }
+            
+            const verifyBtn = document.getElementById('verifyBtn');
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+            
+            try {
+                const response = await fetch('/api/auth/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        otp_code: otpCode
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    sessionStorage.removeItem('registration_user_id');
+                    showSuccess('✅ ' + data.message);
+                    
+                    // Show WAPL ID in alert
+                    setTimeout(() => {
+                        alert('Registration Complete!\n\nYour WAPL ID: ' + data.wapl_id + '\n\nStatus: ' + data.status.toUpperCase() + '\n\nPlease wait for admin approval before logging in.');
+                        window.location.href = '/login';
+                    }, 1500);
+                } else {
+                    showError(data.error || 'OTP verification failed');
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = 'Verify OTP';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An error occurred during OTP verification');
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify OTP';
+            }
+        });
+
+        // Handle resend OTP
+        document.getElementById('resendBtn').addEventListener('click', async () => {
+            const userId = sessionStorage.getItem('registration_user_id');
+            
+            if (!userId) {
+                showError('Session expired. Please register again.');
+                setTimeout(() => {
+                    window.location.href = '/register';
+                }, 2000);
+                return;
+            }
+            
+            const resendBtn = document.getElementById('resendBtn');
+            resendBtn.disabled = true;
+            resendBtn.textContent = 'Sending...';
+            
+            try {
+                const response = await fetch('/api/auth/resend-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccess('✅ OTP resent successfully! Please check your email.');
+                } else {
+                    showError(data.error || 'Failed to resend OTP');
+                }
+                
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Resend OTP';
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An error occurred while resending OTP');
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Resend OTP';
+            }
+        });
+
+        // Check if user_id exists on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const userId = sessionStorage.getItem('registration_user_id');
+            if (!userId) {
+                showError('No registration found. Redirecting to registration page...');
+                setTimeout(() => {
+                    window.location.href = '/register';
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>

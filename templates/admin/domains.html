@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Management - WAPL Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo {
+            padding: 0 20px 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .logo h2 {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .nav-menu {
+            padding: 0 10px;
+        }
+
+        .nav-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: all 0.3s;
+        }
+
+        .nav-menu a:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-menu a.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-menu a i {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+            width: calc(100% - 250px);
+        }
+
+        /* Header with Role Badge */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .admin-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .admin-info h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .role-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: #ffd700;
+            color: #000;
+            border: 2px solid #ffed4e;
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.5);
+        }
+
+        /* Content Card */
+        .content-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        .content-card h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        /* Alert Messages */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+
+        /* Form */
+        .form-inline {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input.error {
+            border-color: #dc3545;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 12px;
+        }
+
+        .btn-warning {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            color: #999;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+        }
+
+        .info-box p {
+            margin: 0;
+            color: #856404;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>🎓 WAPL Admin</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="/secure-admin-panel/wapl/dashboard">
+                    <i>📊</i> Dashboard
+                </a>
+                <a href="/secure-admin-panel/wapl/students">
+                    <i>👨‍🎓</i> Students
+                </a>
+                <a href="/secure-admin-panel/wapl/hrs">
+                    <i>👔</i> HRs
+                </a>
+                <a href="/secure-admin-panel/wapl/assign-students">
+                    <i>🔗</i> Assign Students
+                </a>
+                <a href="/secure-admin-panel/wapl/domains" class="active">
+                    <i>🏷️</i> Domains
+                </a>
+                <a href="/secure-admin-panel/wapl/certificates">
+                    <i>📜</i> Certificates
+                </a>
+                <a href="/secure-admin-panel/wapl/admins">
+                    <i>👤</i> Admins
+                </a>
+                <a href="/secure-admin-panel/wapl/logout">
+                    <i>🚪</i> Logout
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header with Role Badge -->
+            <div class="admin-header">
+                <div class="admin-info">
+                    <h1>Domain Management</h1>
+                    <span class="role-badge">⭐ SUPER ADMIN</span>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="info-box">
+                <p>⚠️ <strong>Super Admin Only:</strong> Manage skill domains for student registration. Inactive domains won't appear in registration.</p>
+            </div>
+
+            <!-- Alert Messages -->
+            <div id="successAlert" class="alert alert-success"></div>
+            <div id="errorAlert" class="alert alert-error"></div>
+
+            <!-- Add Domain Card -->
+            <div class="content-card">
+                <h2>➕ Add New Domain</h2>
+                <form id="addDomainForm" class="form-inline">
+                    <div class="form-group">
+                        <label>Domain Name *</label>
+                        <input type="text" id="domainName" placeholder="e.g., Artificial Intelligence, Blockchain" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Domain</button>
+                </form>
+            </div>
+
+            <!-- Domains List Card -->
+            <div class="content-card">
+                <h2>📋 All Domains</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Domain Name</th>
+                                <th>Status</th>
+                                <th>Created At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="domainsTableBody">
+                            <tr>
+                                <td colspan="4">
+                                    <div class="empty-state">
+                                        <h3>📋 Loading domains...</h3>
+                                        <p>Please wait</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let allDomains = [];
+
+        // Load all domains
+        async function loadDomains() {
+            try {
+                const response = await fetch('/api/admin/domains');
+                allDomains = await response.json();
+                displayDomains(allDomains);
+            } catch (error) {
+                console.error('Error loading domains:', error);
+                showError('Failed to load domains');
+            }
+        }
+
+        // Display domains in table
+        function displayDomains(domains) {
+            const tbody = document.getElementById('domainsTableBody');
+            
+            if (domains.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4">
+                            <div class="empty-state">
+                                <h3>📭 No domains found</h3>
+                                <p>Add a new domain to get started</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = domains.map(domain => `
+                <tr>
+                    <td><strong>${domain.domain_name}</strong></td>
+                    <td>
+                        <span class="status-badge ${domain.is_active ? 'status-active' : 'status-inactive'}">
+                            ${domain.is_active ? '✅ Active' : '❌ Inactive'}
+                        </span>
+                    </td>
+                    <td>${formatDate(domain.created_at)}</td>
+                    <td>
+                        <div class="action-buttons">
+                            ${domain.is_active ? 
+                                `<button onclick="toggleDomainStatus(${domain.id}, 0)" class="btn btn-sm btn-warning">⏸️ Deactivate</button>` :
+                                `<button onclick="toggleDomainStatus(${domain.id}, 1)" class="btn btn-sm btn-success">✅ Activate</button>`
+                            }
+                            <button onclick="deleteDomain(${domain.id}, '${domain.domain_name}')" class="btn btn-sm btn-danger">🗑️ Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Add domain form submission
+        document.getElementById('addDomainForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const domainName = document.getElementById('domainName').value.trim();
+            
+            if (!domainName) {
+                showError('Domain name is required');
+                document.getElementById('domainName').classList.add('error');
+                return;
+            }
+
+            // Check for duplicates
+            if (allDomains.some(d => d.domain_name.toLowerCase() === domainName.toLowerCase())) {
+                showError('This domain already exists');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/domain/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ domainName: domainName })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccess(`✅ Domain "${domainName}" added successfully!`);
+                    document.getElementById('addDomainForm').reset();
+                    document.getElementById('domainName').classList.remove('error');
+                    loadDomains();
+                } else {
+                    showError(data.error || 'Failed to add domain');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An error occurred while adding domain');
+            }
+        });
+
+        // Toggle domain status (activate/deactivate)
+        async function toggleDomainStatus(domainId, newStatus) {
+            const domain = allDomains.find(d => d.id === domainId);
+            const action = newStatus ? 'activate' : 'deactivate';
+            
+            if (!confirm(`${action === 'activate' ? '✅ Activate' : '⏸️ Deactivate'} domain "${domain.domain_name}"?\n\n${newStatus ? 'Students will be able to select this domain during registration.' : 'This domain will be hidden from registration.'}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/domain/${domainId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isActive: newStatus })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccess(`✅ Domain ${action}d successfully!`);
+                    loadDomains();
+                } else {
+                    showError(data.error || `Failed to ${action} domain`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An error occurred');
+            }
+        }
+
+        // Delete domain
+        async function deleteDomain(domainId, domainName) {
+            if (!confirm(`🗑️ Are you sure you want to delete domain "${domainName}"?\n\n⚠️ This action cannot be undone!\n\nStudents assigned to this domain will need to be reassigned.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/domain/${domainId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccess(`✅ Domain "${domainName}" deleted successfully!`);
+                    loadDomains();
+                } else {
+                    showError(data.error || 'Failed to delete domain');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An error occurred while deleting domain');
+            }
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const alert = document.getElementById('successAlert');
+            alert.textContent = message;
+            alert.style.display = 'block';
+            document.getElementById('errorAlert').style.display = 'none';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+
+            // Scroll to top to show message
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Show error message
+        function showError(message) {
+            const alert = document.getElementById('errorAlert');
+            alert.textContent = '❌ ' + message;
+            alert.style.display = 'block';
+            document.getElementById('successAlert').style.display = 'none';
+            
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+
+            // Scroll to top to show message
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        // Remove error class on input
+        document.getElementById('domainName').addEventListener('input', function() {
+            this.classList.remove('error');
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDomains();
+        });
+    </script>
+</body>
+</html>

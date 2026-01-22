@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Login - WAPL{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-background">
+    <video class="auth-video-bg" autoplay loop muted playsinline>
+        <source src="/uploads/pics/logo.mp4" type="video/mp4">
+    </video>
+    <div class="auth-overlay"></div>
+</div>
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Login</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Login</button>
+        </form>
+        <div class="auth-links">
+            <a href="/forgot-password">Forgot Password?</a>
+            <a href="/register">Don't have an account? Register</a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = {
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value
+    };
+    
+    try {
+        showLoading();
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        hideLoading();
+        
+        if (response.ok) {
+            showToast('Login successful!', 'success');
+            setTimeout(() => {
+                window.location.href = data.redirect || '/';
+            }, 1000);
+        } else {
+            showToast(data.error || 'Login failed', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showToast('An error occurred', 'error');
+    }
+});
+</script>
+{% endblock %}

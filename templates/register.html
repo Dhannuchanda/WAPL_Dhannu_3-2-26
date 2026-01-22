@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration - WAPL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .registration-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .logo-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        label .required {
+            color: red;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="tel"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: 'Arial', sans-serif;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .domains-section {
+            margin-bottom: 20px;
+        }
+
+        .domains-section label {
+            margin-bottom: 12px;
+        }
+
+        #domainContainer {
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+
+        .domain-checkbox {
+            margin-bottom: 10px;
+        }
+
+        .domain-checkbox label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .domain-checkbox label:hover {
+            background-color: #f0f0f0;
+        }
+
+        .domain-checkbox input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #5568d3;
+        }
+
+        .btn-primary:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .login-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background-color: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message {
+            background-color: #efe;
+            color: #3c3;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .password-requirements {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="registration-container">
+        <div class="logo-section">
+            <h1>WAPL Student Registration</h1>
+            <p class="subtitle">Create your account to get started</p>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+
+        <form id="registrationForm">
+            <div class="form-group">
+                <label for="fullName">Full Name <span class="required">*</span></label>
+                <input type="text" id="fullName" placeholder="Enter your full name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email <span class="required">*</span></label>
+                <input type="email" id="email" placeholder="Enter your email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone Number <span class="required">*</span></label>
+                <input type="tel" id="phone" placeholder="Enter your phone number" required>
+            </div>
+
+            <div class="form-group">
+                <label for="address">Address</label>
+                <textarea id="address" placeholder="Enter your address (optional)"></textarea>
+            </div>
+
+            <div class="form-group domains-section">
+                <label>Select Domain(s) <span class="required">*</span></label>
+                <div id="domainContainer">
+                    <p style="text-align: center; color: #999;">Loading domains...</p>
+                </div>
+                <p style="font-size: 12px; color: #666; margin-top: 5px;">Choose one or more technology domains you're interested in</p>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password <span class="required">*</span></label>
+                <input type="password" id="password" placeholder="Enter password" required>
+                <p class="password-requirements">Must be at least 6 characters</p>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
+                <input type="password" id="confirmPassword" placeholder="Confirm password" required>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn btn-primary">Register</button>
+        </form>
+
+        <div class="login-link">
+            Already have an account? <a href="/login">Login here</a>
+        </div>
+    </div>
+
+    <script>
+        // Load domains on page load
+        async function loadDomains() {
+            try {
+                const response = await fetch('/api/admin/domains');
+                const domains = await response.json();
+                
+                const domainContainer = document.getElementById('domainContainer');
+                domainContainer.innerHTML = '';
+                
+                if (!domains || domains.length === 0) {
+                    domainContainer.innerHTML = '<p style="text-align: center; color: #999;">No domains available</p>';
+                    return;
+                }
+                
+                // Filter only active domains
+                const activeDomains = domains.filter(d => d.is_active);
+                
+                if (activeDomains.length === 0) {
+                    domainContainer.innerHTML = '<p style="text-align: center; color: #999;">No active domains available</p>';
+                    return;
+                }
+                
+                activeDomains.forEach(domain => {
+                    const checkbox = document.createElement('div');
+                    checkbox.className = 'domain-checkbox';
+                    checkbox.innerHTML = `
+                        <label>
+                            <input type="checkbox" name="domain" value="${domain.id}">
+                            ${domain.domain_name}
+                        </label>
+                    `;
+                    domainContainer.appendChild(checkbox);
+                });
+            } catch (error) {
+                console.error('Error loading domains:', error);
+                const domainContainer = document.getElementById('domainContainer');
+                domainContainer.innerHTML = '<p style="text-align: center; color: #c33;">Failed to load domains. Please refresh the page.</p>';
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+
+        // Handle registration form submission
+        document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Hide any previous messages
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+            
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const fullName = document.getElementById('fullName').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const address = document.getElementById('address').value.trim();
+            
+            // Get selected domains
+            const selectedDomains = [];
+            document.querySelectorAll('input[name="domain"]:checked').forEach(checkbox => {
+                selectedDomains.push(parseInt(checkbox.value));
+            });
+            
+            // Validation
+            if (!email || !password || !fullName || !phone) {
+                showError('Please fill all required fields');
+                return;
+            }
+            
+            if (selectedDomains.length === 0) {
+                showError('Please select at least one domain');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showError('Passwords do not match');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters');
+                return;
+            }
+            
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showError('Please enter a valid email address');
+                return;
+            }
+            
+            // Disable submit button
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Registering...';
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        full_name: fullName,
+                        phone: phone,
+                        address: address,
+                        domain_ids: selectedDomains  // Send as array
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccess(data.message + ' Redirecting to OTP verification...');
+                    // Store user_id for OTP verification
+                    sessionStorage.setItem('registration_user_id', data.user_id);
+                    
+                    // Redirect to OTP page after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '/verify-otp';
+                    }, 2000);
+                } else {
+                    showError(data.error || 'Registration failed. Please try again.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Register';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An error occurred during registration. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Register';
+            }
+        });
+
+        // Load domains when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDomains();
+        });
+    </script>
+</body>
+</html>

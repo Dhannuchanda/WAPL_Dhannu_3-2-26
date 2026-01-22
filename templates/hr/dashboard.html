@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}HR Dashboard - WAPL{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/hr/dashboard.css') }}">
+{% endblock %}
+
+{% block navbar %}
+<nav class="navbar">
+    <div class="container">
+        <a href="{% if current_user and current_user.role == 'admin' %}/secure-admin-panel-wapl/dashboard{% elif current_user and current_user.role == 'hr' %}/hr/dashboard{% else %}/student/dashboard{% endif %}" class="navbar-brand" title="Home">
+            <video class="logo-video" autoplay loop muted playsinline>
+                <source src="/uploads/pics/logo.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </a>
+        <div class="navbar-menu">
+            <a href="/hr/dashboard">Dashboard</a>
+            <a href="/hr/students">Students</a>
+            <button onclick="logout()" class="btn btn-link">Logout</button>
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1>HR Dashboard</h1>
+    
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <h3 id="totalStudents">0</h3>
+            <p>Assigned Students</p>
+        </div>
+    </div>
+    
+    <div class="dashboard-actions">
+        <a href="/hr/students" class="btn btn-primary">View All Students</a>
+    </div>
+</div>
+
+<script>
+async function loadStats() {
+    try {
+        const response = await fetch('/api/hr/students');
+        const students = await response.json();
+        
+        if (response.ok) {
+            document.getElementById('totalStudents').textContent = students.length;
+        }
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+async function logout() {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
+    } catch (error) {
+        window.location.href = '/login';
+    }
+}
+
+loadStats();
+</script>
+{% endblock %}

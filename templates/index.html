@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}WAPL - Home{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="landing-page">
+    <div class="hero-section">
+        <div class="container">
+            <h1 class="hero-title">WAPL</h1>
+            <p class="hero-subtitle">Welcome To WAPL</p>
+            <div class="hero-buttons">
+                <a href="/register" class="btn btn-primary">Student Registration</a>
+                <a href="/login" class="btn btn-secondary">Login</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

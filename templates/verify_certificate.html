@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Certificate - WAPL{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/verify_certificate.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="verify-certificate-container">
+    <div class="verify-card">
+        {% if valid %}
+        <div class="certificate-valid">
+            <div class="valid-icon">✓</div>
+            <h2>Certificate Verified</h2>
+            <div class="certificate-details">
+                <p><strong>Student Name:</strong> {{ certificate.full_name }}</p>
+                <p><strong>WAPL ID:</strong> {{ certificate.wapl_id }}</p>
+                <p><strong>Domain:</strong> {{ certificate.domain_name }}</p>
+                <p><strong>Issue Date:</strong> {{ certificate.issue_date[:10] }}</p>
+                <p><strong>Expiry Date:</strong> {{ certificate.expiry_date[:10] }}</p>
+                <p><strong>Certificate ID:</strong> {{ certificate.certificate_unique_id }}</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="certificate-invalid">
+            <div class="invalid-icon">✗</div>
+            <h2>Certificate Verification Failed</h2>
+            <p class="error-message">{{ message }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

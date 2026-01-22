@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}Student Profile - WAPL{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/student/profile.css') }}">
+{% endblock %}
+
+{% block navbar %}
+<nav class="navbar">
+    <div class="container">
+        <a href="{% if current_user and current_user.role == 'admin' %}/secure-admin-panel-wapl/dashboard{% elif current_user and current_user.role == 'hr' %}/hr/dashboard{% else %}/student/dashboard{% endif %}" class="navbar-brand" title="Home">
+            <video class="logo-video" autoplay loop muted playsinline>
+                <source src="/uploads/pics/logo.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </a>
+        <div class="navbar-menu">
+            <a href="/student/dashboard">Dashboard</a>
+            <a href="/student/profile">Profile</a>
+            <a href="/student/certificate">Certificate</a>
+            <button onclick="logout()" class="btn btn-link">Logout</button>
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <h1>My Profile</h1>
+    <div class="profile-section">
+        <h2>Account Status</h2>
+        <p id="accountStatusField">Loading...</p>
+    </div>
+    
+    <div class="profile-section">
+        <h2>Basic Information</h2>
+        <form id="profileForm">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="full_name" required>
+            </div>
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="tel" id="phone" required>
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <textarea id="address" rows="3"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+    </div>
+    
+    <div class="profile-section">
+        <h2>Profile Picture</h2>
+        <div id="profilePicContainer">
+            <img id="profilePic" src="" alt="Profile Picture" style="max-width: 200px; display: none; border-radius: 8px; margin-bottom: 15px;">
+            <div>
+                <input type="file" id="profilePicInput" accept="image/jpeg,image/jpg,image/png">
+            </div>
+            <div style="margin-top: 10px;">
+                <button onclick="uploadProfilePic()" class="btn btn-secondary">Upload Photo</button>
+                <button id="deletePhotoBtn" onclick="deleteProfilePic()" class="btn btn-danger" style="display: none;">Delete Photo</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="profile-section">
+        <h2>Resume</h2>
+        <div id="resumeContainer">
+            <a id="resumeLink" href="" target="_blank" style="display: none;">View Resume</a>
+            <div style="margin-top: 10px;">
+                <input type="file" id="resumeInput" accept=".pdf,.doc,.docx">
+            </div>
+            <div style="margin-top: 10px;">
+                <button onclick="uploadResume()" class="btn btn-secondary">Upload Resume</button>
+                <button id="deleteResumeBtn" onclick="deleteResume()" class="btn btn-danger" style="display: none;">Delete Resume</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="profile-section">
+        <h2>Education Details</h2>
+        <div id="educationContainer">
+            <button onclick="addEducation()" class="btn btn-secondary">Add Education</button>
+            <div id="educationList"></div>
+        </div>
+    </div>
+    
+    <div class="profile-section">
+        <h2>Skills</h2>
+        <div id="skillsContainer">
+            <input type="text" id="skillInput" placeholder="Enter skill and press Enter">
+            <div id="skillsList"></div>
+        </div>
+    </div>
+    
+    <div class="profile-section">
+        <h2>Projects</h2>
+        <div id="projectsContainer">
+            <button onclick="addProject()" class="btn btn-secondary">Add Project</button>
+            <div id="projectsList"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+let educationData = [];
+let skillsData = [];
+let projectsData = [];
+
+async function loadProfile() {
+    try {
+        const response = await fetch('/api/student/profile');
+        const profile = await response.json();
+        
+        if (response.ok) {
+            // Render account status
+            const statusText = formatAccountStatus(profile.account_status);
+            const statusClass = getAccountClass(profile.account_status);
+            document.getElementById('accountStatusField').innerHTML = `<span class="status-badge-tiny ${statusClass}">${statusText}</span>`;
+
+            document.getElementById('full_name').value = profile.full_name || '';
+            document.getElementById('phone').value = profile.phone || '';
+            document.getElementById('address').value = profile.address || '';
+            
+            // Profile Picture
+            if (profile.profile_pic) {
+                document.getElementById('profilePic').src = '/' + profile.profile_pic;
+                document.getElementById('profilePic').style.display = 'block';
+                document.getElementById('deletePhotoBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('profilePic').style.display = 'none';
+                document.getElementById('deletePhotoBtn').style.display = 'none';
+            }
+            
+            // Resume
+            if (profile.resume) {
+                document.getElementById('resumeLink').href = '/' + profile.resume;
+                document.getElementById('resumeLink').style.display = 'block';
+                document.getElementById('deleteResumeBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('resumeLink').style.display = 'none';
+                document.getElementById('deleteResumeBtn').style.display = 'none';
+            }
+            
+            educationData = profile.education_details || [];
+            skillsData = profile.skills || [];
+            projectsData = profile.projects || [];
+            
+            renderEducation();
+            renderSkills();
+            renderProjects();
+        }
+    } catch (error) {
+        showToast('Error loading profile', 'error');
+    }
+}
+
+function formatAccountStatus(status) {
+    const map = { pending: 'Pending', active: 'Active', suspended: 'Suspended', revoked: 'Revoked' };
+    return map[status] || (status ? status : 'Unknown');
+}
+
+function getAccountClass(status) {
+    const map = { pending: 'status-viewed', active: 'status-selected', suspended: 'status-interview', revoked: 'status-rejected' };
+    return map[status] || '';
+}
+
+function renderEducation() {
+    const container = document.getElementById('educationList');
+    container.innerHTML = educationData.map((edu, idx) => `
+        <div class="education-item">
+            <input type="text" placeholder="Degree" value="${edu.degree || ''}" onchange="updateEducation(${idx}, 'degree', this.value)">
+            <input type="text" placeholder="Institution" value="${edu.institution || ''}" onchange="updateEducation(${idx}, 'institution', this.value)">
+            <input type="text" placeholder="Year" value="${edu.year || ''}" onchange="updateEducation(${idx}, 'year', this.value)">
+            <button onclick="removeEducation(${idx})" class="btn btn-danger btn-sm">Remove</button>
+        </div>
+    `).join('');
+}
+
+function renderSkills() {
+    const container = document.getElementById('skillsList');
+    container.innerHTML = skillsData.map((skill, idx) => `
+        <span class="skill-tag">
+            ${skill}
+            <button onclick="removeSkill(${idx})" class="skill-remove">×</button>
+        </span>
+    `).join('');
+}
+
+function renderProjects() {
+    const container = document.getElementById('projectsList');
+    container.innerHTML = projectsData.map((proj, idx) => `
+        <div class="project-item">
+            <input type="text" placeholder="Project Name" value="${proj.name || ''}" onchange="updateProject(${idx}, 'name', this.value)">
+            <textarea placeholder="Description" onchange="updateProject(${idx}, 'description', this.value)">${proj.description || ''}</textarea>
+            <input type="text" placeholder="Technologies" value="${proj.technologies || ''}" onchange="updateProject(${idx}, 'technologies', this.value)">
+            <button onclick="removeProject(${idx})" class="btn btn-danger btn-sm">Remove</button>
+        </div>
+    `).join('');
+}
+
+function addEducation() {
+    educationData.push({ degree: '', institution: '', year: '' });
+    renderEducation();
+}
+
+function updateEducation(idx, field, value) {
+    educationData[idx][field] = value;
+    saveProfile();
+}
+
+function removeEducation(idx) {
+    educationData.splice(idx, 1);
+    renderEducation();
+    saveProfile();
+}
+
+document.getElementById('skillInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const skill = e.target.value.trim();
+        if (skill && !skillsData.includes(skill)) {
+            skillsData.push(skill);
+            renderSkills();
+            e.target.value = '';
+            saveProfile();
+        }
+    }
+});
+
+function removeSkill(idx) {
+    skillsData.splice(idx, 1);
+    renderSkills();
+    saveProfile();
+}
+
+function addProject() {
+    projectsData.push({ name: '', description: '', technologies: '' });
+    renderProjects();
+}
+
+function updateProject(idx, field, value) {
+    projectsData[idx][field] = value;
+    saveProfile();
+}
+
+function removeProject(idx) {
+    projectsData.splice(idx, 1);
+    renderProjects();
+    saveProfile();
+}
+
+async function saveProfile() {
+    try {
+        await fetch('/api/student/profile', {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                full_name: document.getElementById('full_name').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                education_details: educationData,
+                skills: skillsData,
+                projects: projectsData
+            })
+        });
+    } catch (error) {
+        // Silent save
+    }
+}
+
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await saveProfile();
+    showToast('Profile updated successfully', 'success');
+});
+
+async function uploadProfilePic() {
+    const file = document.getElementById('profilePicInput').files[0];
+    if (!file) {
+        showToast('Please select a file', 'error');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        showLoading();
+        const response = await fetch('/api/student/upload-photo', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        hideLoading();
+        
+        if (response.ok) {
+            showToast('Profile picture uploaded successfully', 'success');
+            loadProfile();
+        } else {
+            showToast(data.error || 'Upload failed', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showToast('Upload error', 'error');
+    }
+}
+
+async function deleteProfilePic() {
+    if (!confirm('Are you sure you want to delete your profile picture?')) {
+        return;
+    }
+    
+    try {
+        showLoading();
+        const response = await fetch('/api/student/delete-photo', {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        hideLoading();
+        
+        if (response.ok) {
+            showToast('Profile picture deleted successfully', 'success');
+            document.getElementById('profilePic').style.display = 'none';
+            document.getElementById('deletePhotoBtn').style.display = 'none';
+            document.getElementById('profilePicInput').value = '';
+        } else {
+            showToast(data.error || 'Delete failed', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showToast('Delete error', 'error');
+    }
+}
+
+async function uploadResume() {
+    const file = document.getElementById('resumeInput').files[0];
+    if (!file) {
+        showToast('Please select a file', 'error');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        showLoading();
+        const response = await fetch('/api/student/upload-resume', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        hideLoading();
+        
+        if (response.ok) {
+            showToast('Resume uploaded successfully', 'success');
+            loadProfile();
+        } else {
+            showToast(data.error || 'Upload failed', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showToast('Upload error', 'error');
+    }
+}
+
+async function deleteResume() {
+    if (!confirm('Are you sure you want to delete your resume?')) {
+        return;
+    }
+    
+    try {
+        showLoading();
+        const response = await fetch('/api/student/delete-resume', {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        hideLoading();
+        
+        if (response.ok) {
+            showToast('Resume deleted successfully', 'success');
+            document.getElementById('resumeLink').style.display = 'none';
+            document.getElementById('deleteResumeBtn').style.display = 'none';
+            document.getElementById('resumeInput').value = '';
+        } else {
+            showToast(data.error || 'Delete failed', 'error');
+        }
+    } catch (error) {
+        hideLoading();
+        showToast('Delete error', 'error');
+    }
+}
+
+async function logout() {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
+    } catch (error) {
+        window.location.href = '/login';
+    }
+}
+
+loadProfile();
+</script>
+{% endblock %}

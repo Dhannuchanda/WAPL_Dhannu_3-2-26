@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Management - WAPL Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo {
+            padding: 0 20px 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .logo h2 {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .nav-menu {
+            padding: 0 10px;
+        }
+
+        .nav-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: all 0.3s;
+        }
+
+        .nav-menu a:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-menu a.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-menu a i {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+            width: calc(100% - 250px);
+        }
+
+        /* Header with Role Badge */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .admin-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .admin-info h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .role-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .role-badge.super-admin {
+            background: #ffd700;
+            color: #000;
+            border: 2px solid #ffed4e;
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .role-badge.admin {
+            background: #fff;
+            color: #667eea;
+            border: 2px solid #fff;
+        }
+
+        /* Content Card */
+        .content-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+        }
+
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-section label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .filter-section input[type="text"] {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            width: 350px;
+            transition: border-color 0.3s;
+        }
+
+        .filter-section input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        /* Dropdown for Assign Students */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 280px;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+            z-index: 1000;
+            border-radius: 8px;
+            max-height: 350px;
+            overflow-y: auto;
+            right: 0;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item strong {
+            display: block;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .dropdown-item small {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .dropdown-item.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 20px;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>🎓 WAPL Admin</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="/secure-admin-panel/wapl/dashboard">
+                    <i>📊</i> Dashboard
+                </a>
+                <a href="/secure-admin-panel/wapl/students">
+                    <i>👨‍🎓</i> Students
+                </a>
+                <a href="/secure-admin-panel/wapl/hrs" class="active">
+                    <i>👔</i> HRs
+                </a>
+                <a href="/secure-admin-panel/wapl/assign-students">
+                    <i>🔗</i> Assign Students
+                </a>
+                <a href="/secure-admin-panel/wapl/domains" id="domainsLink" style="display: none;">
+                    <i>🏷️</i> Domains
+                </a>
+                <a href="/secure-admin-panel/wapl/certificates">
+                    <i>📜</i> Certificates
+                </a>
+                <a href="/secure-admin-panel/wapl/admins" id="adminsLink" style="display: none;">
+                    <i>👤</i> Admins
+                </a>
+                <a href="/secure-admin-panel/wapl/logout">
+                    <i>🚪</i> Logout
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header with Role Badge -->
+            <div class="admin-header">
+                <div class="admin-info">
+                    <h1>HR Management</h1>
+                    <span class="role-badge" id="roleBadge">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Content Card -->
+            <div class="content-card">
+                <div class="header-section">
+                    <h2 style="margin: 0;">All HRs</h2>
+                    <button onclick="openCreateHRModal()" class="btn btn-primary">➕ Create New HR</button>
+                </div>
+
+                <!-- Filter Section -->
+                <div class="filter-section">
+                    <label>Search:</label>
+                    <input type="text" id="searchInput" placeholder="Search by name, email, company..." onkeyup="filterHRs()">
+                </div>
+
+                <!-- HRs Table -->
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Company</th>
+                                <th>Phone</th>
+                                <th>Designation</th>
+                                <th>Created At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hrsTableBody">
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <h3>📋 Loading HRs...</h3>
+                                        <p>Please wait while we fetch the data</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create HR Modal -->
+    <div id="createHRModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCreateHRModal()">&times;</span>
+            <h2 style="margin-bottom: 20px;">Create New HR</h2>
+            <form id="createHRForm">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="hrFullName" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="hrEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Password *</label>
+                    <input type="password" id="hrPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>Company Name *</label>
+                    <input type="text" id="hrCompany" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone *</label>
+                    <input type="tel" id="hrPhone" required>
+                </div>
+                <div class="form-group">
+                    <label>Designation *</label>
+                    <input type="text" id="hrDesignation" placeholder="e.g., Recruitment Manager" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create HR Account</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let allHRs = [];
+        let allStudents = [];
+
+        // Check if super admin and show/hide menu items
+        async function checkSuperAdmin() {
+            try {
+                const response = await fetch('/api/admin/check-super-admin');
+                const data = await response.json();
+                
+                // Update role badge
+                const roleBadge = document.getElementById('roleBadge');
+                if (data.is_super_admin) {
+                    roleBadge.textContent = '⭐ SUPER ADMIN';
+                    roleBadge.className = 'role-badge super-admin';
+                    document.getElementById('domainsLink').style.display = 'flex';
+                    document.getElementById('adminsLink').style.display = 'flex';
+                } else {
+                    roleBadge.textContent = '🔒 ADMIN';
+                    roleBadge.className = 'role-badge admin';
+                }
+            } catch (error) {
+                console.error('Error checking super admin:', error);
+            }
+        }
+
+        // Load all HRs
+        async function loadHRs() {
+            try {
+                const response = await fetch('/api/admin/hrs');
+                allHRs = await response.json();
+                displayHRs(allHRs);
+            } catch (error) {
+                console.error('Error loading HRs:', error);
+                document.getElementById('hrsTableBody').innerHTML = 
+                    '<tr><td colspan="7"><div class="empty-state"><h3>❌ Error loading HRs</h3><p>Please refresh the page</p></div></td></tr>';
+            }
+        }
+
+        // Load all students
+        async function loadStudents() {
+            try {
+                const response = await fetch('/api/admin/students');
+                allStudents = await response.json();
+                console.log('Students loaded:', allStudents.length);
+            } catch (error) {
+                console.error('Error loading students:', error);
+            }
+        }
+
+        // Display HRs in table
+        function displayHRs(hrs) {
+            const tbody = document.getElementById('hrsTableBody');
+            
+            if (hrs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><h3>📭 No HRs found</h3><p>Create a new HR account to get started</p></div></td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = hrs.map(hr => `
+                <tr>
+                    <td><strong>${hr.full_name || 'N/A'}</strong></td>
+                    <td>${hr.email || 'N/A'}</td>
+                    <td>${hr.company_name || 'N/A'}</td>
+                    <td>${hr.phone || 'N/A'}</td>
+                    <td>${hr.designation || 'N/A'}</td>
+                    <td>${formatDate(hr.created_at)}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <div class="dropdown">
+                                <button onclick="toggleStudentDropdown(${hr.id}, event)" class="btn btn-sm btn-primary">
+                                    👨‍🎓 Assign Students
+                                </button>
+                                <div id="student-dropdown-${hr.id}" class="dropdown-content">
+                                    <!-- Content generated on click -->
+                                </div>
+                            </div>
+                            <button onclick="viewHR(${hr.id})" class="btn btn-sm btn-secondary">👁️ View</button>
+                            <button onclick="deleteHR(${hr.id}, '${hr.full_name}')" class="btn btn-sm btn-danger">🗑️ Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Generate student dropdown HTML
+        function generateStudentDropdown(hrId) {
+            console.log('Generating student dropdown. Students available:', allStudents.length);
+            
+            if (!allStudents || allStudents.length === 0) {
+                return '<div class="dropdown-item" style="padding: 12px; text-align: center; color: #999;">No students available</div>';
+            }
+
+            let html = '';
+            
+            // Get students assigned to this HR
+            const assignedStudents = allStudents.filter(s => s.assigned_hr_id === hrId);
+            const unassignedStudents = allStudents.filter(s => !s.assigned_hr_id || s.assigned_hr_id !== hrId);
+            
+            // Show assigned students with unassign option
+            if (assignedStudents.length > 0) {
+                html += '<div style="padding: 8px 12px; background: #f8f9fa; font-weight: bold; font-size: 11px; color: #666;">ASSIGNED STUDENTS</div>';
+                assignedStudents.forEach(student => {
+                    html += `<div class="dropdown-item" onclick="unassignStudentFromHR(${student.id}, ${hrId}, event)">
+                        <strong>✓ ${student.full_name}</strong>
+                        <small>${student.wapl_id} - ${student.email}</small>
+                        <small style="color: #dc3545; display: block; margin-top: 3px;">Click to unassign</small>
+                    </div>`;
+                });
+            }
+            
+            // Show unassigned students
+            if (unassignedStudents.length > 0) {
+                if (assignedStudents.length > 0) {
+                    html += '<div style="padding: 8px 12px; background: #f8f9fa; font-weight: bold; font-size: 11px; color: #666; margin-top: 5px;">AVAILABLE STUDENTS</div>';
+                }
+                unassignedStudents.forEach(student => {
+                    html += `<div class="dropdown-item" onclick="assignStudentToHR(${student.id}, ${hrId}, event)">
+                        <strong>${student.full_name}</strong>
+                        <small>${student.wapl_id} - ${student.email}</small>
+                        ${student.assigned_hr_id ? '<small style="color: #856404; display: block;">Assigned to another HR</small>' : ''}
+                    </div>`;
+                });
+            }
+            
+            if (html === '') {
+                html = '<div class="dropdown-item" style="padding: 12px; text-align: center; color: #999;">No students available</div>';
+            }
+
+            return html;
+        }
+
+        // Toggle student dropdown
+        function toggleStudentDropdown(hrId, event) {
+            event.stopPropagation();
+            
+            // Close all other dropdowns
+            document.querySelectorAll('.dropdown-content').forEach(dd => {
+                if (dd.id !== `student-dropdown-${hrId}`) {
+                    dd.classList.remove('show');
+                }
+            });
+
+            // Get current dropdown
+            const dropdown = document.getElementById(`student-dropdown-${hrId}`);
+            
+            // Regenerate dropdown content with current students
+            dropdown.innerHTML = generateStudentDropdown(hrId);
+            
+            // Toggle visibility
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdowns when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.matches('.btn-primary') && !event.target.matches('.btn-sm')) {
+                document.querySelectorAll('.dropdown-content').forEach(dd => {
+                    dd.classList.remove('show');
+                });
+            }
+        }
+
+        // Assign student to HR
+        async function assignStudentToHR(studentId, hrId, event) {
+            if (event) event.stopPropagation();
+            
+            const student = allStudents.find(s => s.id === studentId);
+            const hr = allHRs.find(h => h.id === hrId);
+            
+            if (!confirm(`Assign "${student.full_name}" to ${hr.full_name} (${hr.company_name})?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/assign-students', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        hrId: hrId,
+                        studentIds: [studentId]
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    await loadStudents(); // Reload students to update assignment
+                    loadHRs(); // Reload HRs
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred');
+            }
+        }
+
+        // Unassign student from HR
+        async function unassignStudentFromHR(studentId, hrId, event) {
+            if (event) event.stopPropagation();
+            
+            const student = allStudents.find(s => s.id === studentId);
+            
+            if (!confirm(`Unassign "${student.full_name}" from this HR?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/unassign-students', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        studentIds: [studentId]
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    await loadStudents(); // Reload students
+                    loadHRs();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred');
+            }
+        }
+
+        // Filter HRs
+        function filterHRs() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (!searchInput) {
+                displayHRs(allHRs);
+                return;
+            }
+            
+            const filtered = allHRs.filter(hr => 
+                (hr.full_name && hr.full_name.toLowerCase().includes(searchInput)) ||
+                (hr.email && hr.email.toLowerCase().includes(searchInput)) ||
+                (hr.company_name && hr.company_name.toLowerCase().includes(searchInput)) ||
+                (hr.designation && hr.designation.toLowerCase().includes(searchInput)) ||
+                (hr.phone && hr.phone.includes(searchInput))
+            );
+            
+            displayHRs(filtered);
+        }
+
+        // View HR details
+        function viewHR(hrId) {
+            window.location.href = `/secure-admin-panel/wapl/hr/${hrId}`;
+        }
+
+        // Delete HR
+        async function deleteHR(hrId, hrName) {
+            if (!confirm(`🗑️ Are you sure you want to delete HR "${hrName}"?\n\nThis action cannot be undone.`)) return;
+            
+            try {
+                const response = await fetch(`/api/admin/hr/${hrId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('✅ HR deleted successfully');
+                    loadHRs();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while deleting HR');
+            }
+        }
+
+        // Open create HR modal
+        function openCreateHRModal() {
+            document.getElementById('createHRModal').style.display = 'block';
+        }
+
+        // Close create HR modal
+        function closeCreateHRModal() {
+            document.getElementById('createHRModal').style.display = 'none';
+            document.getElementById('createHRForm').reset();
+        }
+
+        // Create HR form submission
+        document.getElementById('createHRForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fullName = document.getElementById('hrFullName').value;
+            const email = document.getElementById('hrEmail').value;
+            const password = document.getElementById('hrPassword').value;
+            const company = document.getElementById('hrCompany').value;
+            const phone = document.getElementById('hrPhone').value;
+            const designation = document.getElementById('hrDesignation').value;
+            
+            try {
+                const response = await fetch('/api/admin/hr/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fullName: fullName,
+                        email: email,
+                        password: password,
+                        companyName: company,
+                        phone: phone,
+                        designation: designation
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('✅ ' + data.message + '\n\nHR account created successfully!');
+                    closeCreateHRModal();
+                    loadHRs();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while creating HR account');
+            }
+        });
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('createHRModal');
+            if (event.target == modal) {
+                closeCreateHRModal();
+            }
+        }
+
+        // Initialize - Load students first, then HRs
+        document.addEventListener('DOMContentLoaded', async () => {
+            checkSuperAdmin();
+            await loadStudents();
+            await loadHRs();
+        });
+    </script>
+</body>
+</html>

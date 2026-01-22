@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Students - WAPL{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/hr/students.css') }}">
+{% endblock %}
+
+{% block navbar %}
+<nav class="navbar">
+    <div class="container">
+        <a href="{% if current_user and current_user.role == 'admin' %}/secure-admin-panel-wapl/dashboard{% elif current_user and current_user.role == 'hr' %}/hr/dashboard{% else %}/student/dashboard{% endif %}" class="navbar-brand" title="Home">
+            <video class="logo-video" autoplay loop muted playsinline>
+                <source src="/uploads/pics/logo.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </a>
+        <div class="navbar-menu">
+            <a href="/hr/dashboard">Dashboard</a>
+            <a href="/hr/students">Students</a>
+            <button onclick="logout()" class="btn btn-link">Logout</button>
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="students-container">
+    <h1>Assigned Students</h1>
+    
+    <div class="filters">
+        <select id="domainFilter">
+            <option value="">All Domains</option>
+        </select>
+        <input type="text" id="skillsFilter" placeholder="Filter by skills">
+        <button onclick="applyFilters()" class="btn btn-secondary">Filter</button>
+    </div>
+    
+    <div id="studentsList" class="students-grid">
+        <p>Loading students...</p>
+    </div>
+</div>
+
+<script>
+let allStudents = [];
+
+async function loadDomains() {
+    try {
+        const response = await fetch('/api/domains/active');
+        const domains = await response.json();
+        const select = document.getElementById('domainFilter');
+        domains.forEach(domain => {
+            const option = document.createElement('option');
+            option.value = domain.id;
+            option.textContent = domain.domain_name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading domains:', error);
+    }
+}
+
+async function loadStudents() {
+    try {
+        const response = await fetch('/api/hr/students');
+        const students = await response.json();
+        
+        if (response.ok) {
+            allStudents = students;
+            renderStudents(students);
+        } else {
+            document.getElementById('studentsList').innerHTML = '<p>Error loading students</p>';
+        }
+    } catch (error) {
+        document.getElementById('studentsList').innerHTML = '<p>Error loading students</p>';
+    }
+}
+
+function renderStudents(students) {
+    const container = document.getElementById('studentsList');
+    
+    if (students.length === 0) {
+        container.innerHTML = '<p>No students assigned</p>';
+        return;
+    }
+    
+    container.innerHTML = students.map(student => {
+        const statusClass = getStatusClass(student.recruitment_status || 'viewed');
+        const statusText = formatStatus(student.recruitment_status || 'viewed');
+        
+        return `
+        <div class="student-card">
+            ${student.profile_pic ? `<img src="/${student.profile_pic}" alt="${student.full_name}" class="student-card-pic">` : `<div class="student-card-pic-placeholder">No Picture</div>`}
+            <div class="status-badge-small ${statusClass}">${statusText}</div>
+            <h3>${student.full_name}</h3>
+            <p><strong>WAPL ID:</strong> ${student.wapl_id}</p>
+            <p><strong>Domain:</strong> ${student.domain_name || 'N/A'}</p>
+            <p><strong>Email:</strong> ${student.email}</p>
+            <p><strong>Phone:</strong> ${student.phone || 'N/A'}</p>
+            ${student.skills && student.skills.length > 0 ? `<p><strong>Skills:</strong> ${student.skills.slice(0, 3).join(', ')}${student.skills.length > 3 ? '...' : ''}</p>` : ''}
+            <div class="student-card-actions">
+                <a href="/hr/student/${student.id}" class="btn btn-primary">View Profile</a>
+                ${student.resume ? `<button onclick="downloadResume(${student.id}, '${student.full_name}')" class="btn btn-secondary">Download Resume</button>` : ''}
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+function formatStatus(status) {
+    const statusMap = {
+        'viewed': 'Viewed',
+        'shortlisted': 'Shortlisted',
+        'interview_scheduled': 'Interview',
+        'selected': 'Selected',
+        'rejected': 'Rejected'
+    };
+    return statusMap[status] || status;
+}
+
+function getStatusClass(status) {
+    const classMap = {
+        'viewed': 'status-viewed',
+        'shortlisted': 'status-shortlisted',
+        'interview_scheduled': 'status-interview',
+        'selected': 'status-selected',
+        'rejected': 'status-rejected'
+    };
+    return classMap[status] || '';
+}
+
+function applyFilters() {
+    const domainId = document.getElementById('domainFilter').value;
+    const skills = document.getElementById('skillsFilter').value;
+    
+    let url = '/api/hr/students/filter?';
+    if (domainId) url += `domain_id=${domainId}&`;
+    if (skills) url += `skills=${encodeURIComponent(skills)}`;
+    
+    fetch(url)
+        .then(res => res.json())
+        .then(students => {
+            renderStudents(students);
+        })
+        .catch(error => {
+            showToast('Error filtering students', 'error');
+        });
+}
+
+function downloadResume(studentId, studentName) {
+    try {
+        showLoading();
+        const link = document.createElement('a');
+        link.href = `/api/hr/student/${studentId}/resume/download`;
+        link.download = `${studentName}_resume`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        hideLoading();
+        showToast('Resume downloaded successfully', 'success');
+    } catch (error) {
+        hideLoading();
+        showToast('Error downloading resume', 'error');
+    }
+}
+
+async function logout() {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
+    } catch (error) {
+        window.location.href = '/login';
+    }
+}
+
+loadDomains();
+loadStudents();
+</script>
+{% endblock %}

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Students to HR - WAPL Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo {
+            padding: 0 20px 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .logo h2 {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .nav-menu {
+            padding: 0 10px;
+        }
+
+        .nav-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: all 0.3s;
+        }
+
+        .nav-menu a:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-menu a.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-menu a i {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+            width: calc(100% - 250px);
+        }
+
+        /* Header with Role Badge */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .admin-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .admin-info h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .role-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .role-badge.super-admin {
+            background: #ffd700;
+            color: #000;
+            border: 2px solid #ffed4e;
+            box-shadow: 0 2px 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .role-badge.admin {
+            background: #fff;
+            color: #667eea;
+            border: 2px solid #fff;
+        }
+
+        /* Content Card */
+        .content-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        .selection-section {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+        }
+
+        .info-box p {
+            margin: 0;
+            color: #0d47a1;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+            color: #333;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .checkbox-cell {
+            text-align: center;
+            width: 50px;
+        }
+
+        .checkbox-cell input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            color: #999;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        .status-assigned {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-unassigned {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        #hrSelectorForAssign {
+            display: none;
+            padding: 8px 12px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 13px;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>🎓 WAPL Admin</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="/secure-admin-panel/wapl/dashboard">
+                    <i>📊</i> Dashboard
+                </a>
+                <a href="/secure-admin-panel/wapl/students">
+                    <i>👨‍🎓</i> Students
+                </a>
+                <a href="/secure-admin-panel/wapl/hrs">
+                    <i>👔</i> HRs
+                </a>
+                <a href="/secure-admin-panel/wapl/assign-students" class="active">
+                    <i>🔗</i> Assign Students
+                </a>
+                <a href="/secure-admin-panel/wapl/domains" id="domainsLink" style="display: none;">
+                    <i>🏷️</i> Domains
+                </a>
+                <a href="/secure-admin-panel/wapl/certificates">
+                    <i>📜</i> Certificates
+                </a>
+                <a href="/secure-admin-panel/wapl/admins" id="adminsLink" style="display: none;">
+                    <i>👤</i> Admins
+                </a>
+                <a href="/secure-admin-panel/wapl/logout">
+                    <i>🚪</i> Logout
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header with Role Badge -->
+            <div class="admin-header">
+                <div class="admin-info">
+                    <h1>Assign Students to HR</h1>
+                    <span class="role-badge" id="roleBadge">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="info-box">
+                <p>📌 Select an HR to view and manage assigned students, or view unassigned students waiting for assignment.</p>
+            </div>
+
+            <!-- Selection Card -->
+            <div class="content-card">
+                <h2 style="margin-bottom: 20px;">Select HR</h2>
+                <div class="selection-section">
+                    <div class="form-group">
+                        <label>Choose HR *</label>
+                        <select id="hrSelect" onchange="loadStudentsForHR()">
+                            <option value="">-- Select HR --</option>
+                        </select>
+                    </div>
+                    <button onclick="viewUnassignedStudents()" class="btn btn-secondary">
+                        📋 View Unassigned Students
+                    </button>
+                </div>
+            </div>
+
+            <!-- Students List Card -->
+            <div class="content-card" id="studentsCard" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 id="sectionTitle" style="margin: 0;">Students</h2>
+                    <div class="action-buttons">
+                        <select id="hrSelectorForAssign">
+                            <option value="">-- Select HR to Assign --</option>
+                        </select>
+                        
+                        <button onclick="assignSelected()" id="assignBtn" class="btn btn-primary" style="display: none;">
+                            ✅ Assign Selected to HR
+                        </button>
+                        <button onclick="unassignSelected()" id="unassignBtn" class="btn btn-danger" style="display: none;">
+                            ❌ Unassign Selected
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="checkbox-cell">
+                                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                </th>
+                                <th>WAPL ID</th>
+                                <th>Full Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Domains</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <h3>👆 Select an HR or view unassigned students</h3>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let allHRs = [];
+        let allStudents = [];
+        let currentMode = '';
+        let selectedHRId = null;
+
+        // Check if super admin
+        async function checkSuperAdmin() {
+            try {
+                const response = await fetch('/api/admin/check-super-admin');
+                const data = await response.json();
+                
+                const roleBadge = document.getElementById('roleBadge');
+                if (data.is_super_admin) {
+                    roleBadge.textContent = '⭐ SUPER ADMIN';
+                    roleBadge.className = 'role-badge super-admin';
+                    document.getElementById('domainsLink').style.display = 'flex';
+                    document.getElementById('adminsLink').style.display = 'flex';
+                } else {
+                    roleBadge.textContent = '🔒 ADMIN';
+                    roleBadge.className = 'role-badge admin';
+                }
+            } catch (error) {
+                console.error('Error checking super admin:', error);
+            }
+        }
+
+        // Load HRs for dropdown
+        async function loadHRs() {
+            try {
+                const response = await fetch('/api/admin/hrs');
+                allHRs = await response.json();
+                
+                console.log('✅ HRs loaded:', allHRs.length);
+                
+                const hrSelect = document.getElementById('hrSelect');
+                const hrSelectorForAssign = document.getElementById('hrSelectorForAssign');
+                
+                hrSelect.innerHTML = '<option value="">-- Select HR --</option>';
+                hrSelectorForAssign.innerHTML = '<option value="">-- Select HR to Assign --</option>';
+                
+                allHRs.forEach(hr => {
+                    const option1 = document.createElement('option');
+                    option1.value = hr.id;
+                    option1.textContent = `${hr.full_name} (${hr.company_name})`;
+                    hrSelect.appendChild(option1);
+                    
+                    const option2 = document.createElement('option');
+                    option2.value = hr.id;
+                    option2.textContent = `${hr.full_name} (${hr.company_name})`;
+                    hrSelectorForAssign.appendChild(option2);
+                });
+            } catch (error) {
+                console.error('Error loading HRs:', error);
+                alert('Error loading HRs. Please refresh the page.');
+            }
+        }
+
+        // Load students for selected HR
+        async function loadStudentsForHR() {
+            const hrId = document.getElementById('hrSelect').value;
+            
+            console.log('📊 Selected HR ID:', hrId);
+            
+            if (!hrId) {
+                document.getElementById('studentsCard').style.display = 'none';
+                return;
+            }
+
+            selectedHRId = hrId;
+            currentMode = 'hr';
+
+            // Show loading state
+            const tbody = document.getElementById('studentsTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <h3>⏳ Loading students...</h3>
+                        </div>
+                    </td>
+                </tr>`;
+            
+            document.getElementById('studentsCard').style.display = 'block';
+
+            try {
+                console.log('🔄 Fetching students for HR ID:', hrId);
+                const response = await fetch(`/api/admin/hr/${hrId}/students`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                allStudents = await response.json();
+                console.log('✅ Students loaded:', allStudents.length);
+                console.log('📋 Students data:', allStudents);
+                
+                const hr = allHRs.find(h => h.id == hrId);
+                document.getElementById('sectionTitle').textContent = 
+                    `Students Assigned to ${hr.full_name} (${allStudents.length})`;
+                
+                document.getElementById('assignBtn').style.display = 'none';
+                document.getElementById('unassignBtn').style.display = 'none';
+                document.getElementById('hrSelectorForAssign').style.display = 'none';
+                
+                displayStudents(allStudents);
+            } catch (error) {
+                console.error('❌ Error loading students:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <h3>❌ Error loading students</h3>
+                                <p>${error.message}</p>
+                                <p>Check browser console for details</p>
+                            </div>
+                        </td>
+                    </tr>`;
+            }
+        }
+
+        // View unassigned students
+        async function viewUnassignedStudents() {
+            document.getElementById('hrSelect').value = '';
+            currentMode = 'unassigned';
+            selectedHRId = null;
+
+            // Show loading
+            const tbody = document.getElementById('studentsTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <h3>⏳ Loading unassigned students...</h3>
+                        </div>
+                    </td>
+                </tr>`;
+            
+            document.getElementById('studentsCard').style.display = 'block';
+
+            try {
+                console.log('🔄 Fetching unassigned students...');
+                const response = await fetch('/api/admin/students/unassigned');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                allStudents = await response.json();
+                console.log('✅ Unassigned students loaded:', allStudents.length);
+                
+                document.getElementById('sectionTitle').textContent = 
+                    `Unassigned Students (${allStudents.length})`;
+                
+                document.getElementById('assignBtn').style.display = 'none';
+                document.getElementById('unassignBtn').style.display = 'none';
+                document.getElementById('hrSelectorForAssign').style.display = 'none';
+                
+                displayStudents(allStudents);
+            } catch (error) {
+                console.error('❌ Error loading unassigned students:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <h3>❌ Error loading students</h3>
+                                <p>${error.message}</p>
+                            </div>
+                        </td>
+                    </tr>`;
+            }
+        }
+
+        // Display students in table
+        function displayStudents(students) {
+            const tbody = document.getElementById('studentsTableBody');
+            
+            console.log('🎨 Displaying students:', students.length);
+            
+            if (!students || students.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <h3>📭 No students found</h3>
+                                <p>${currentMode === 'hr' ? 'No students assigned to this HR yet' : 'All students have been assigned'}</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = students.map(student => `
+                <tr>
+                    <td class="checkbox-cell">
+                        <input type="checkbox" class="student-checkbox" value="${student.id}">
+                    </td>
+                    <td><strong>${student.wapl_id || 'N/A'}</strong></td>
+                    <td>${student.full_name || 'N/A'}</td>
+                    <td>${student.email || 'N/A'}</td>
+                    <td>${student.phone || 'N/A'}</td>
+                    <td>${student.domain_names || student.domains || 'N/A'}</td>
+                    <td>
+                        <span class="status-badge ${student.assigned_hr_id ? 'status-assigned' : 'status-unassigned'}">
+                            ${student.assigned_hr_id ? 'Assigned' : 'Unassigned'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('selectAll').checked = false;
+            attachCheckboxListeners();
+            
+            console.log('✅ Students displayed successfully');
+        }
+
+        // Attach event listeners to checkboxes
+        function attachCheckboxListeners() {
+            document.querySelectorAll('.student-checkbox').forEach(cb => {
+                cb.addEventListener('change', updateButtonVisibility);
+            });
+        }
+
+        // Toggle select all
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll').checked;
+            document.querySelectorAll('.student-checkbox').forEach(cb => {
+                cb.checked = selectAll;
+            });
+            updateButtonVisibility();
+        }
+
+        // Update button visibility
+        function updateButtonVisibility() {
+            const anyChecked = Array.from(document.querySelectorAll('.student-checkbox')).some(c => c.checked);
+            
+            if (currentMode === 'hr') {
+                document.getElementById('unassignBtn').style.display = anyChecked ? 'inline-flex' : 'none';
+                document.getElementById('assignBtn').style.display = 'none';
+                document.getElementById('hrSelectorForAssign').style.display = 'none';
+            } else if (currentMode === 'unassigned') {
+                document.getElementById('assignBtn').style.display = anyChecked ? 'inline-flex' : 'none';
+                document.getElementById('hrSelectorForAssign').style.display = anyChecked ? 'block' : 'none';
+                document.getElementById('unassignBtn').style.display = 'none';
+            }
+        }
+
+        // Assign selected students to HR
+        async function assignSelected() {
+            const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked'))
+                .map(cb => parseInt(cb.value));
+
+            if (selectedStudents.length === 0) {
+                alert('Please select at least one student');
+                return;
+            }
+
+            const hrSelectorForAssign = document.getElementById('hrSelectorForAssign');
+            const selectedHrId = hrSelectorForAssign.value;
+
+            if (!selectedHrId) {
+                alert('Please select an HR to assign students to');
+                hrSelectorForAssign.focus();
+                return;
+            }
+
+            const hr = allHRs.find(h => h.id == selectedHrId);
+            if (!confirm(`Assign ${selectedStudents.length} student(s) to ${hr.full_name}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/assign-students', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        hrId: parseInt(selectedHrId),
+                        studentIds: selectedStudents
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`✅ ${data.message}`);
+                    viewUnassignedStudents();
+                } else {
+                    alert(`❌ Error: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while assigning students');
+            }
+        }
+
+        // Unassign selected students
+        async function unassignSelected() {
+            const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked'))
+                .map(cb => parseInt(cb.value));
+
+            if (selectedStudents.length === 0) {
+                alert('Please select at least one student');
+                return;
+            }
+
+            if (!confirm(`Unassign ${selectedStudents.length} student(s) from this HR?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/unassign-students', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        studentIds: selectedStudents
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert(`✅ ${data.message}`);
+                    loadStudentsForHR();
+                } else {
+                    alert(`❌ Error: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while unassigning students');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Page loaded, initializing...');
+            checkSuperAdmin();
+            loadHRs();
+        });
+    </script>
+</body>
+</html>

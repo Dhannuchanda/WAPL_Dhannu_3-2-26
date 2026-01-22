@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Certificate - WAPL{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/student/certificate.css') }}">
+{% endblock %}
+
+{% block navbar %}
+<nav class="navbar">
+    <div class="container">
+        <a href="{% if current_user and current_user.role == 'admin' %}/secure-admin-panel-wapl/dashboard{% elif current_user and current_user.role == 'hr' %}/hr/dashboard{% else %}/student/dashboard{% endif %}" class="navbar-brand" title="Home">
+            <video class="logo-video" autoplay loop muted playsinline>
+                <source src="/uploads/pics/logo.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </a>
+        <div class="navbar-menu">
+            <a href="/student/dashboard">Dashboard</a>
+            <a href="/student/profile">Profile</a>
+            <a href="/student/certificate">Certificate</a>
+            <button onclick="logout()" class="btn btn-link">Logout</button>
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="certificate-container">
+    <h1>My Certificate</h1>
+    
+    <div id="certificateContent">
+        <p>Loading certificate...</p>
+    </div>
+</div>
+
+<script>
+async function loadCertificate() {
+    try {
+        const response = await fetch('/api/student/certificate');
+        const certificate = await response.json();
+        
+        if (response.ok) {
+            const expiryDate = new Date(certificate.expiry_date);
+            const isExpired = expiryDate < new Date();
+            
+            document.getElementById('certificateContent').innerHTML = `
+                <div class="certificate-card">
+                    <h2>Certificate Details</h2>
+                    <p><strong>Certificate ID:</strong> ${certificate.certificate_unique_id}</p>
+                    <p><strong>Issue Date:</strong> ${certificate.issue_date.substring(0, 10)}</p>
+                    <p><strong>Expiry Date:</strong> ${certificate.expiry_date.substring(0, 10)}</p>
+                    <p><strong>Status:</strong> <span class="${isExpired ? 'status-expired' : 'status-active'}">${isExpired ? 'Expired' : 'Active'}</span></p>
+                    ${!isExpired ? `
+                        <a href="/api/student/certificate/download" class="btn btn-primary">Download Certificate PDF</a>
+                    ` : '<p class="error-message">Your certificate has expired.</p>'}
+                </div>
+            `;
+        } else {
+            document.getElementById('certificateContent').innerHTML = `
+                <div class="certificate-card">
+                    <p class="error-message">${certificate.error || 'Certificate not found'}</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        document.getElementById('certificateContent').innerHTML = `
+            <div class="certificate-card">
+                <p class="error-message">Error loading certificate</p>
+            </div>
+        `;
+    }
+}
+
+async function logout() {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
+    } catch (error) {
+        window.location.href = '/login';
+    }
+}
+
+loadCertificate();
+</script>
+{% endblock %}
