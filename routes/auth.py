@@ -5,9 +5,7 @@ from database import db
 from utils import generate_otp, send_email_simulation, sanitize_input, generate_wapl_id
 import secrets
 
-
 auth_bp = Blueprint('auth', __name__)
-
 
 def require_auth(roles=None):
     """Decorator to require authentication and optionally specific roles"""
@@ -23,7 +21,6 @@ def require_auth(roles=None):
         wrapper.__name__ = f.__name__
         return wrapper
     return decorator
-
 
 @auth_bp.route('/api/auth/register', methods=['POST'])
 def register():
@@ -101,16 +98,20 @@ def register():
             f'Your OTP for registration is: {otp_code}\nValid for 10 minutes.'
         )
         
+        print(f"🔐 OTP for {email}: {otp_code}")  # Console log for testing
         print(f"Registration initiated for: {email}, User ID: {user_id}")
+        
         return jsonify({
             'message': 'Registration successful. Please verify OTP sent to your email.',
-            'user_id': user_id
+            'user_id': user_id,
+            'otp_code': otp_code  # ⚠️ FOR TESTING ONLY - Remove in production!
         }), 201
         
     except Exception as e:
         print(f"Registration error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
 
 @auth_bp.route('/api/auth/verify-otp', methods=['POST'])
 def verify_otp():
@@ -119,6 +120,8 @@ def verify_otp():
         data = request.get_json()
         user_id = data.get('user_id')
         otp_code = data.get('otp_code', '').strip()
+        
+        print(f"🔍 Verifying OTP: user_id={user_id}, otp_code={otp_code}")
         
         if not all([user_id, otp_code]):
             return jsonify({'error': 'User ID and OTP are required'}), 400
@@ -133,6 +136,7 @@ def verify_otp():
         )
         
         if not otp_record:
+            print(f"❌ Invalid or expired OTP for user_id: {user_id}")
             return jsonify({'error': 'Invalid or expired OTP'}), 400
         
         # Mark OTP as used
@@ -151,6 +155,7 @@ def verify_otp():
         registration_data = session.get('pending_registration')
         
         if not registration_data or registration_data.get('user_id') != user_id:
+            print(f"❌ Registration data not found in session for user_id: {user_id}")
             return jsonify({'error': 'Registration data not found. Please register again.'}), 400
         
         # Complete student registration
@@ -207,6 +212,8 @@ Thank you for registering with WAPL!'''
             
         except Exception as e:
             print(f"Error completing registration: {e}")
+            import traceback
+            traceback.print_exc()
             return jsonify({'error': f'Failed to complete registration: {str(e)}'}), 500
         
         return jsonify({
@@ -217,8 +224,9 @@ Thank you for registering with WAPL!'''
         
     except Exception as e:
         print(f"OTP verification error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
 
 @auth_bp.route('/api/auth/resend-otp', methods=['POST'])
 def resend_otp():
@@ -260,13 +268,19 @@ def resend_otp():
                 f'Your new OTP for registration is: {otp_code}\nValid for 10 minutes.'
             )
         
+        print(f"🔐 NEW OTP for user_id {user_id}: {otp_code}")  # Console log
         print(f"OTP resent for user_id: {user_id}")
-        return jsonify({'message': 'OTP resent successfully'}), 200
+        
+        return jsonify({
+            'message': 'OTP resent successfully',
+            'otp_code': otp_code  # ⚠️ FOR TESTING ONLY - Remove in production!
+        }), 200
         
     except Exception as e:
         print(f"Resend OTP error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
 
 @auth_bp.route('/api/auth/login', methods=['POST'])
 def login():
@@ -322,7 +336,7 @@ def login():
         redirect_urls = {
             'student': '/student/dashboard',
             'hr': '/hr/dashboard',
-            'admin': '/secure-admin-panel-wapl/dashboard'
+            'admin': '/secure-admin-panel/wapl/dashboard'
         }
         
         return jsonify({
@@ -333,8 +347,9 @@ def login():
         
     except Exception as e:
         print(f"Login error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
 
 @auth_bp.route('/api/admin/login', methods=['POST'])
 def admin_login():
@@ -385,8 +400,9 @@ def admin_login():
         
     except Exception as e:
         print(f"Admin login error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
 
 @auth_bp.route('/api/auth/logout', methods=['POST'])
 def logout():
@@ -394,26 +410,21 @@ def logout():
     session.clear()
     return jsonify({'message': 'Logged out successfully'}), 200
 
-
 @auth_bp.route('/login')
 def login_page():
     return render_template('login.html')
-
 
 @auth_bp.route('/register')
 def register_page():
     return render_template('register.html')
 
-
 @auth_bp.route('/verify-otp')
 def verify_otp_page():
     return render_template('verify_otp.html')
 
-
 @auth_bp.route('/forgot-password')
 def forgot_password_page():
     return render_template('forgot_password.html')
-
 
 @auth_bp.route('/api/auth/forgot-password', methods=['POST'])
 def forgot_password():
@@ -450,8 +461,15 @@ def forgot_password():
             f'Your OTP for password reset is: {otp_code}\nValid for 10 minutes.'
         )
         
-        return jsonify({'message': 'If email exists, password reset OTP sent'}), 200
+        print(f"🔐 Password Reset OTP for {email}: {otp_code}")
+        
+        return jsonify({
+            'message': 'If email exists, password reset OTP sent',
+            'otp_code': otp_code  # ⚠️ FOR TESTING ONLY
+        }), 200
         
     except Exception as e:
         print(f"Forgot password error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
