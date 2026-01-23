@@ -22,7 +22,13 @@ app = Flask(__name__)
 # Configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '4912607a8134bfce8bc6f56c27071068ffd364ed38b905ccf61d69bb9d9df861')
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_FILE_DIR'] = './flask_session'
+
+# Use /tmp directory on Vercel (writable), local directory otherwise
+if os.environ.get('VERCEL'):
+    app.config['SESSION_FILE_DIR'] = '/tmp/flask_session'
+else:
+    app.config['SESSION_FILE_DIR'] = './flask_session'
+
 app.config['SESSION_PERMANENT'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file upload
 
@@ -36,13 +42,19 @@ Session(app)
 
 def ensure_directories():
     """Create necessary directories if they don't exist"""
+    # Use /tmp on Vercel for writable storage
+    if os.environ.get('VERCEL'):
+        base_path = '/tmp'
+    else:
+        base_path = '.'
+    
     directories = [
-        'uploads/profile_pics',
-        'uploads/resumes',
-        'uploads/certificates',
-        'uploads/qr_codes',
-        'flask_session',
-        'fonts'
+        f'{base_path}/uploads/profile_pics',
+        f'{base_path}/uploads/resumes',
+        f'{base_path}/uploads/certificates',
+        f'{base_path}/uploads/qr_codes',
+        f'{base_path}/flask_session',
+        f'{base_path}/fonts'
     ]
     
     for directory in directories:
@@ -139,5 +151,3 @@ if __name__ == '__main__':
         port=5000,
         debug=True
     )
-
-app = app
