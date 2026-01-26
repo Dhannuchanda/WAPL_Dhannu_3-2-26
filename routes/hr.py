@@ -330,6 +330,333 @@ def update_student_recruitment_status(student_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@hr_bp.route('/api/hr/student/<int:student_id>/shortlist', methods=['POST'])
+@require_hr_auth
+def shortlist_student(student_id):
+    """Shortlist a student"""
+    try:
+        user_id = session['user_id']
+        data = request.get_json()
+        notes = sanitize_input(data.get('notes', ''))
+        
+        # Get HR ID
+        hr = db.execute_query(
+            'SELECT id FROM hrs WHERE user_id = ?',
+            (user_id,),
+            fetch_one=True
+        )
+        
+        if not hr:
+            return jsonify({'error': 'HR profile not found'}), 404
+        
+        hr_id = hr['id']
+        
+        # Verify student is assigned to this HR
+        student = db.execute_query(
+            'SELECT id FROM students WHERE id = ? AND assigned_hr_id = ?',
+            (student_id, hr_id),
+            fetch_one=True
+        )
+        
+        if not student:
+            return jsonify({'error': 'Student not found or not assigned to you'}), 404
+        
+        # Update or create recruitment status
+        existing = db.execute_query(
+            'SELECT id FROM recruitment_status WHERE student_id = ? AND hr_id = ?',
+            (student_id, hr_id),
+            fetch_one=True
+        )
+        
+        if existing:
+            db.execute_query(
+                '''UPDATE recruitment_status 
+                   SET status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+                   WHERE student_id = ? AND hr_id = ?''',
+                (
+'shortlisted', notes, student_id, hr_id)
+            )
+        else:
+            db.execute_query(
+                '''INSERT INTO recruitment_status (student_id, hr_id, status, notes)
+                   VALUES (?, ?, ?, ?)''',
+                (student_id, hr_id, 'shortlisted', notes)
+            )
+        
+        print(f"✅ Student {student_id} shortlisted by HR {hr_id}")
+        return jsonify({'message': 'Student shortlisted successfully'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error shortlisting student: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@hr_bp.route('/api/hr/student/<int:student_id>/interview', methods=['POST'])
+@require_hr_auth
+def schedule_interview(student_id):
+    """Schedule an interview"""
+    try:
+        user_id = session['user_id']
+        data = request.get_json()
+        interview_date = sanitize_input(data.get('interview_date', ''))
+        interview_time = sanitize_input(data.get('interview_time', ''))
+        interview_location = sanitize_input(data.get('interview_location', ''))
+        notes = sanitize_input(data.get('notes', ''))
+        
+        if not interview_date or not interview_time:
+            return jsonify({'error': 'Interview date and time are required'}), 400
+        
+        # Get HR ID
+        hr = db.execute_query(
+            'SELECT id FROM hrs WHERE user_id = ?',
+            (user_id,),
+            fetch_one=True
+        )
+        
+        if not hr:
+            return jsonify({'error': 'HR profile not found'}), 404
+        
+        hr_id = hr['id']
+        
+        # Verify student is assigned to this HR
+        student = db.execute_query(
+            'SELECT id FROM students WHERE id = ? AND assigned_hr_id = ?',
+            (student_id, hr_id),
+            fetch_one=True
+        )
+        
+        if not student:
+            return jsonify({'error': 'Student not found or not assigned to you'}), 404
+        
+        # Update recruitment status with interview details
+        interview_details = f"Interview scheduled for {interview_date} at {interview_time}"
+        if interview_location:
+            interview_details += f" ({interview_location})"
+        if notes:
+            interview_details += f". Notes: {notes}"
+        
+        existing = db.execute_query(
+            'SELECT id FROM recruitment_status WHERE student_id = ? AND hr_id = ?',
+            (student_id, hr_id),
+            fetch_one=True
+        )
+        
+        if existing:
+            db.execute_query(
+                '''UPDATE recruitment_status 
+                   SET status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+                   WHERE student_id = ? AND hr_id = ?''',
+                ('interview_scheduled', interview_details, student_id, hr_id)
+            )
+        else:
+            db.execute_query(
+                '''INSERT INTO recruitment_status (student_id, hr_id, status, notes)
+                   VALUES (?, ?, ?, ?)''',
+                (student_id, hr_id, 'interview_scheduled', interview_details)
+            )
+        
+        print(f"✅ Interview scheduled for student {student_id} by HR {hr_id}")
+        return jsonify({'message': 'Interview scheduled successfully'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error scheduling interview: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@hr_bp.route('/api/hr/student/<int:student_id>/reject', methods=['POST'])
+@require_hr_auth
+def reject_student(student_id):
+    """Reject a student"""
+    try:
+        user_id = session['user_id']
+        data = request.get_json()
+        reason = sanitize_input(data.get('reason', ''))
+        
+        # Get HR ID
+        hr = db.execute_query(
+            'SELECT id FROM hrs WHERE user_id = ?',
+            (user_id,),
+            fetch_one=True
+        )
+        
+        if not hr:
+            return jsonify({'error': 'HR profile not found'}), 404
+        
+        hr_id = hr['id']
+        
+        # Verify student is assigned to this HR
+        student = db.execute_query(
+            'SELECT id FROM students WHERE id = ? AND assigned_hr_id = ?',
+            (student_id, hr_id),
+            fetch_one=True
+        )
+        
+        if not student:
+            return jsonify({'error': 'Student not found or not assigned to you'}), 404
+        
+        # Update recruitment status
+        rejection_notes = f"Rejected"
+        if reason:
+            rejection_notes += f": {reason}"
+        
+        existing = db.execute_query(
+            'SELECT id FROM recruitment_status WHERE student_id = ? AND hr_id = ?',
+            (student_id, hr_id),
+            fetch_one=True
+        )
+        
+        if existing:
+            db.execute_query(
+                '''UPDATE recruitment_status 
+                   SET status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+                   WHERE student_id = ? AND hr_id = ?''',
+                ('rejected', rejection_notes, student_id, hr_id)
+            )
+        else:
+            db.execute_query(
+                '''INSERT INTO recruitment_status (student_id, hr_id, status, notes)
+                   VALUES (?, ?, ?, ?)''',
+                (student_id, hr_id, 'rejected', rejection_notes)
+            )
+        
+        print(f"❌ Student {student_id} rejected by HR {hr_id}")
+        return jsonify({'message': 'Student rejected successfully'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error rejecting student: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@hr_bp.route('/api/hr/student/<int:student_id>/select', methods=['POST'])
+@require_hr_auth
+def select_student(student_id):
+    """Mark student as selected/hired"""
+    try:
+        user_id = session['user_id']
+        data = request.get_json()
+        offer_notes = sanitize_input(data.get('offer_notes', ''))
+        
+        # Get HR ID
+        hr = db.execute_query(
+            'SELECT id FROM hrs WHERE user_id = ?',
+            (user_id,),
+            fetch_one=True
+        )
+        
+        if not hr:
+            return jsonify({'error': 'HR profile not found'}), 404
+        
+        hr_id = hr['id']
+        
+        # Verify student is assigned to this HR
+        student = db.execute_query(
+            'SELECT id FROM students WHERE id = ? AND assigned_hr_id = ?',
+            (student_id, hr_id),
+            fetch_one=True
+        )
+        
+        if not student:
+            return jsonify({'error': 'Student not found or not assigned to you'}), 404
+        
+        # Update recruitment status
+        selection_notes = "Selected for position"
+        if offer_notes:
+            selection_notes += f". Offer details: {offer_notes}"
+        
+        existing = db.execute_query(
+            'SELECT id FROM recruitment_status WHERE student_id = ? AND hr_id = ?',
+            (student_id, hr_id),
+            fetch_one=True
+        )
+        
+        if existing:
+            db.execute_query(
+                '''UPDATE recruitment_status 
+                   SET status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+                   WHERE student_id = ? AND hr_id = ?''',
+                ('selected', selection_notes, student_id, hr_id)
+            )
+        else:
+            db.execute_query(
+                '''INSERT INTO recruitment_status (student_id, hr_id, status, notes)
+                   VALUES (?, ?, ?, ?)''',
+                (student_id, hr_id, 'selected', selection_notes)
+            )
+        
+        print(f"✅ Student {student_id} selected by HR {hr_id}")
+        return jsonify({'message': 'Student selected successfully'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error selecting student: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@hr_bp.route('/api/hr/recruitment-summary', methods=['GET'])
+@require_hr_auth
+def get_recruitment_summary():
+    """Get recruitment summary for HR"""
+    try:
+        user_id = session['user_id']
+        
+        # Get HR ID
+        hr = db.execute_query(
+            'SELECT id FROM hrs WHERE user_id = ?',
+            (user_id,),
+            fetch_one=True
+        )
+        
+        if not hr:
+            return jsonify({'error': 'HR profile not found'}), 404
+        
+        hr_id = hr['id']
+        
+        # Get recruitment statistics
+        total = db.execute_query(
+            'SELECT COUNT(*) as count FROM students WHERE assigned_hr_id = ? AND account_status = "active"',
+            (hr_id,),
+            fetch_one=True
+        )
+        
+        viewed = db.execute_query(
+            '''SELECT COUNT(*) as count FROM recruitment_status 
+               WHERE hr_id = ? AND status IN ('viewed', 'shortlisted', 'interview_scheduled', 'selected', 'rejected')''',
+            (hr_id,),
+            fetch_one=True
+        )
+        
+        shortlisted = db.execute_query(
+            'SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = "shortlisted"',
+            (hr_id,),
+            fetch_one=True
+        )
+        
+        interviews = db.execute_query(
+            'SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = "interview_scheduled"',
+            (hr_id,),
+            fetch_one=True
+        )
+        
+        selected = db.execute_query(
+            'SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = "selected"',
+            (hr_id,),
+            fetch_one=True
+        )
+        
+        rejected = db.execute_query(
+            'SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = "rejected"',
+            (hr_id,),
+            fetch_one=True
+        )
+        
+        return jsonify({
+            'total_assigned': total['count'] if total else 0,
+            'total_viewed': viewed['count'] if viewed else 0,
+            'total_shortlisted': shortlisted['count'] if shortlisted else 0,
+            'total_interviews': interviews['count'] if interviews else 0,
+            'total_selected': selected['count'] if selected else 0,
+            'total_rejected': rejected['count'] if rejected else 0
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting recruitment summary: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @hr_bp.route('/hr/dashboard')
 @require_hr_auth
 def hr_dashboard():

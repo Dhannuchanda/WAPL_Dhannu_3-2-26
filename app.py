@@ -1,7 +1,10 @@
-from flask import Flask, render_template, redirect, url_for, session
+from flask import Flask, render_template, redirect, url_for, session, send_from_directory
 from flask_session import Session
 import os
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 
 # Import database
 from database import init_db, db
@@ -23,8 +26,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '4912607a8134bfce8bc6f56c27071068ffd364ed38b905ccf61d69bb9d9df861')
 app.config['SESSION_TYPE'] = 'filesystem'
 
-# Use /tmp directory on Vercel (writable), local directory otherwise
-if os.environ.get('VERCEL'):
+# Use /tmp directory on Vercel or Render (writable), local directory otherwise
+if os.environ.get('VERCEL') or os.environ.get('RENDER'):
     app.config['SESSION_FILE_DIR'] = '/tmp/flask_session'
 else:
     app.config['SESSION_FILE_DIR'] = './flask_session'
@@ -42,8 +45,8 @@ Session(app)
 
 def ensure_directories():
     """Create necessary directories if they don't exist"""
-    # Use /tmp on Vercel for writable storage
-    if os.environ.get('VERCEL'):
+    # Use /tmp on Vercel/Render for writable storage, local directory otherwise
+    if os.environ.get('VERCEL') == 'True' or os.environ.get('RENDER'):
         base_path = '/tmp'
     else:
         base_path = '.'
@@ -63,10 +66,12 @@ def ensure_directories():
             print(f"✓ Directory ensured: {directory}")
         except Exception as e:
             print(f"⚠ Warning: Could not create directory {directory}: {e}")
+    
+    return base_path
 
 
-# Create directories on startup
-ensure_directories()
+# Create directories and get base path for uploads
+UPLOAD_BASE_PATH = ensure_directories()
 
 
 # Initialize database
@@ -118,6 +123,54 @@ def index():
     
     return render_template('index.html')
 
+
+# ==================== FILE SERVING ====================
+
+
+@app.route('/uploads/<path:filename>')
+def serve_upload(filename):
+    """Serve uploaded files (profile pics, resumes, certificates, QR codes)"""
+    uploads_dir = os.path.join(UPLOAD_BASE_PATH, 'uploads')
+    
+    # Determine MIME type based on file extension
+    if filename.lower().endswith('.pdf'):
+        mime_type = 'application/pdf'
+    elif filename.lower().endswith(('.jpg', '.jpeg')):
+        mime_type = 'image/jpeg'
+    elif filename.lower().endswith('.png'):
+        mime_type = 'image/png'
+    else:
+        mime_type = 'application/octet-stream'
+    
+    return send_from_directory(uploads_dir, filename, mimetype=mime_type)
+
+
+@app.route('/download/<path:filename>')
+def download_file(filename):
+    """Download uploaded files as attachments (forces download instead of view)"""
+    uploads_dir = os.path.join(UPLOAD_BASE_PATH, 'uploads')
+    
+    # Determine MIME type based on file extension
+    if filename.lower().endswith('.pdf'):
+        mime_type = 'application/pdf'
+    elif filename.lower().endswith(('.jpg', '.jpeg')):
+        mime_type = 'image/jpeg'
+    elif filename.lower().endswith('.png'):
+        mime_type = 'image/png'
+    else:
+        mime_type = 'application/octet-stream'
+    
+    # Use as_attachment=True to force download
+    return send_from_directory(
+        uploads_dir, 
+        filename, 
+        mimetype=mime_type,
+        as_attachment=True,
+        download_name=filename.split('_', 2)[-1] if '_' in filename else filename
+    )
+
+
+# ==================== CONTEXT PROCESSOR ====================
 
 # ==================== CONTEXT PROCESSOR ====================
 

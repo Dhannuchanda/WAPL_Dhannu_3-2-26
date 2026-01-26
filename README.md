@@ -30,6 +30,7 @@ A comprehensive web application for managing student portfolios, HR assignments,
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript
 - **Backend**: Python (Flask)
 - **Database**: SQLite
+- **Email**: Gmail SMTP (for OTP delivery)
 - **Libraries**: 
   - python-qrcode (QR code generation)
   - ReportLab (PDF generation)
@@ -58,18 +59,45 @@ A comprehensive web application for managing student portfolios, HR assignments,
    pip install -r requirements.txt
    ```
 
-4. **Set up environment variables**
+4. **Set up Gmail for OTP emails** ⚠️ IMPORTANT
+   - Follow [GMAIL_SETUP_GUIDE.md](GMAIL_SETUP_GUIDE.md) for complete instructions
+   - Quick setup:
+     1. Enable 2-Factor Authentication on `techinfo506168@gmail.com`
+     2. Generate a Gmail App Password
+     3. Create `.env` file with your Gmail credentials
+     ```env
+     GMAIL_EMAIL=techinfo506168@gmail.com
+     GMAIL_PASSWORD=your_16_char_app_password
+     ```
+
+5. **Set up other environment variables**
    - Copy `.env.example` to `.env`
    - Update the values in `.env` file
 
-5. **Run the application**
+6. **Run the application**
    ```bash
    python app.py
    ```
 
-6. **Access the application**
+7. **Access the application**
    - Main site: http://localhost:5000
    - Admin panel: http://localhost:5000/secure-admin-panel-wapl/login
+
+## Email Configuration
+
+This application sends OTP verification emails via Gmail:
+
+- **Email Account**: techinfo506168@gmail.com
+- **Purpose**: User registration OTP, password reset OTP, confirmations
+- **Setup Guide**: See [GMAIL_SETUP_GUIDE.md](GMAIL_SETUP_GUIDE.md)
+
+### What Emails Are Sent?
+
+1. **Registration OTP** - When user registers
+2. **Registration Confirmation** - After OTP verification
+3. **Password Reset OTP** - When user requests password reset
+
+All emails use professional HTML templates with branding.
 
 ## Default Admin Credentials
 

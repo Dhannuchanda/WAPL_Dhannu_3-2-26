@@ -116,9 +116,281 @@ body {
 </main>
 </div>
 
+<style>
+.student-detail-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+.student-detail-card h2 {
+    color: #333;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+}
+
+.student-detail-card p {
+    margin: 8px 0;
+    color: #555;
+}
+
+.recruitment-section {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+}
+
+.recruitment-section h3 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 12px;
+    margin: 8px 0;
+}
+
+.status-viewed { background: #e3f2fd; color: #1976d2; }
+.status-shortlisted { background: #f3e5f5; color: #7b1fa2; }
+.status-interview_scheduled { background: #fff3e0; color: #e65100; }
+.status-selected { background: #e8f5e9; color: #2e7d32; }
+.status-rejected { background: #ffebee; color: #c62828; }
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+}
+
+.btn-danger {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+}
+
+.modal-content h2 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.modal-content label {
+    display: block;
+    margin-top: 15px;
+    color: #555;
+    font-weight: 600;
+}
+
+.modal-content input,
+.modal-content textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+}
+
+.modal-content textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+.notes-section {
+    background: #f9f9f9;
+    padding: 15px;
+    border-left: 4px solid #667eea;
+    margin-top: 10px;
+    border-radius: 4px;
+}
+
+.profile-header-section {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+    margin-bottom: 30px;
+}
+
+.profile-picture-container {
+    flex-shrink: 0;
+}
+
+.profile-picture {
+    width: 150px;
+    height: 150px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 3px solid #667eea;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.profile-picture.placeholder {
+    background: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    border-radius: 12px;
+    border: 3px solid #667eea;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.resume-section {
+    background: #f0f7ff;
+    border-left: 4px solid #3b82f6;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.resume-section h3 {
+    margin-top: 0;
+    color: #1e40af;
+    margin-bottom: 15px;
+}
+
+.resume-file {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.resume-file-icon {
+    font-size: 30px;
+}
+
+.resume-file-info {
+    flex-grow: 1;
+}
+
+.resume-file-name {
+    font-weight: bold;
+    color: #1e293b;
+    margin-bottom: 5px;
+}
+
+.resume-file-size {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.resume-download-btn {
+    padding: 10px 20px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s;
+}
+
+.resume-download-btn:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+}
+
+.no-resume {
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px dashed #cbd5e1;
+    color: #64748b;
+    text-align: center;
+}
+</style>
+
 <script>
 const studentId = window.location.pathname.split('/').pop();
 let currentStatus = 'viewed';
+let currentStudent = null;
+
+const statusLabels = {
+    'viewed': '👁️ Viewed',
+    'shortlisted': '⭐ Shortlisted',
+    'interview_scheduled': '📅 Interview Scheduled',
+    'selected': '✅ Selected',
+    'rejected': '❌ Rejected'
+};
 
 async function loadStudentDetail() {
     const res = await fetch(`/api/hr/student/${studentId}`);
@@ -129,18 +401,270 @@ async function loadStudentDetail() {
         return;
     }
 
+    currentStudent = student;
+
     const statusRes = await fetch(`/api/hr/student/${studentId}/status`);
     const statusData = await statusRes.json();
     currentStatus = statusData.status || 'viewed';
 
-    document.getElementById('studentDetail').innerHTML = `
+    // Profile picture - extract just the filename if full path is provided
+    let profilePic = null;
+    if (student.profile_pic) {
+        // Get just the filename (last part after all slashes/backslashes)
+        let profileName = student.profile_pic.split('/').pop().split('\\').pop();
+        profilePic = `/uploads/profile_pics/${profileName}`;
+    }
+
+    // Resume section
+    let resumeHTML = '';
+    if (student.resume) {
+        // Get just the filename (last part after all slashes/backslashes)
+        let resumeFile = student.resume.split('/').pop().split('\\').pop();
+        const resumePath = `/download/resumes/${resumeFile}`;
+        const resumeName = resumeFile.split('_').pop();
+        resumeHTML = `
+            <div class="resume-section">
+                <h3>📄 Resume</h3>
+                <div class="resume-file">
+                    <div class="resume-file-icon">📑</div>
+                    <div class="resume-file-info">
+                        <div class="resume-file-name">${resumeName}</div>
+                        <div class="resume-file-size">Click download to view</div>
+                    </div>
+                    <a href="${resumePath}" class="resume-download-btn" download>⬇️ Download</a>
+                </div>
+            </div>
+        `;
+    } else {
+        resumeHTML = `
+            <div class="resume-section">
+                <h3>📄 Resume</h3>
+                <div class="no-resume">❌ No resume uploaded</div>
+            </div>
+        `;
+    }
+
+    const studentInfo = `
+        <div class="profile-header-section">
+            <div class="profile-picture-container">
+                ${profilePic ? 
+                    `<img src="${profilePic}" alt="${student.full_name}" class="profile-picture" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 150 150%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22150%22 height=%22150%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 font-size=%2250%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22%3E👤%3C/text%3E%3C/svg%3E'">` : 
+                    `<div class="profile-picture placeholder">👤</div>`
+                }
+            </div>
+            <div style="flex-grow: 1;">
+                ${resumeHTML}
+            </div>
+        </div>
+
         <div class="student-detail-card">
             <h2>${student.full_name}</h2>
+            <p><strong>WAPL ID:</strong> ${student.wapl_id}</p>
             <p><strong>Email:</strong> ${student.email}</p>
             <p><strong>Phone:</strong> ${student.phone || 'N/A'}</p>
+            <p><strong>Address:</strong> ${student.address || 'N/A'}</p>
             <p><strong>Domain:</strong> ${student.domain_name || 'N/A'}</p>
+            ${student.skills ? `<p><strong>Skills:</strong> ${student.skills}</p>` : ''}
+            ${student.projects ? `<p><strong>Projects:</strong> ${student.projects}</p>` : ''}
+        </div>
+
+        <div class="recruitment-section">
+            <h3>📋 Recruitment Status</h3>
+            <div class="status-badge status-${currentStatus}">
+                ${statusLabels[currentStatus] || 'Unknown'}
+            </div>
+            ${statusData.notes ? `<div class="notes-section"><strong>Notes:</strong> ${statusData.notes}</div>` : ''}
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="openShortlistModal()">⭐ Shortlist</button>
+                <button class="btn btn-primary" onclick="openInterviewModal()">📅 Schedule Interview</button>
+                <button class="btn" onclick="openSelectModal()" style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white;">✅ Select/Hire</button>
+                <button class="btn btn-danger" onclick="openRejectModal()">❌ Reject</button>
+            </div>
         </div>
     `;
+
+    document.getElementById('studentDetail').innerHTML = studentInfo;
+}
+
+// Shortlist Modal
+function openShortlistModal() {
+    const notesInput = prompt('Add notes for shortlisting (optional):');
+    if (notesInput !== null) {
+        shortlistStudent(notesInput);
+    }
+}
+
+async function shortlistStudent(notes) {
+    try {
+        const res = await fetch(`/api/hr/student/${studentId}/shortlist`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes: notes || '' })
+        });
+        
+        if (res.ok) {
+            alert('✅ Student shortlisted successfully!');
+            currentStatus = 'shortlisted';
+            loadStudentDetail();
+        } else {
+            const err = await res.json();
+            alert('❌ Error: ' + (err.error || 'Failed to shortlist student'));
+        }
+    } catch (e) {
+        alert('❌ Error: ' + e.message);
+    }
+}
+
+// Interview Modal
+function openInterviewModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>📅 Schedule Interview</h2>
+            <label>Interview Date:</label>
+            <input type="date" id="interviewDate" required>
+            
+            <label>Interview Time:</label>
+            <input type="time" id="interviewTime" required>
+            
+            <label>Interview Location:</label>
+            <input type="text" id="interviewLocation" placeholder="e.g., Conference Room A" required>
+            
+            <div class="modal-buttons">
+                <button class="btn" onclick="this.parentElement.parentElement.parentElement.remove()" style="background:#e0e0e0; color:#333;">Cancel</button>
+                <button class="btn btn-primary" onclick="scheduleInterview()">Schedule</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function scheduleInterview() {
+    const date = document.getElementById('interviewDate').value;
+    const time = document.getElementById('interviewTime').value;
+    const location = document.getElementById('interviewLocation').value;
+    
+    if (!date || !time || !location) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/api/hr/student/${studentId}/interview`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                interview_date: date,
+                interview_time: time,
+                interview_location: location
+            })
+        });
+        
+        if (res.ok) {
+            alert('✅ Interview scheduled successfully!');
+            currentStatus = 'interview_scheduled';
+            document.querySelector('.modal').remove();
+            loadStudentDetail();
+        } else {
+            const err = await res.json();
+            alert('❌ Error: ' + (err.error || 'Failed to schedule interview'));
+        }
+    } catch (e) {
+        alert('❌ Error: ' + e.message);
+    }
+}
+
+// Select Modal
+function openSelectModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>✅ Select/Hire Student</h2>
+            <label>Offer Notes (optional):</label>
+            <textarea id="offerNotes" placeholder="e.g., Salary offer, position details, start date"></textarea>
+            
+            <div class="modal-buttons">
+                <button class="btn" onclick="this.parentElement.parentElement.parentElement.remove()" style="background:#e0e0e0; color:#333;">Cancel</button>
+                <button class="btn" onclick="selectStudent()" style="background:linear-gradient(135deg,#4CAF50,#45a049); color:white;">Confirm Selection</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function selectStudent() {
+    const notes = document.getElementById('offerNotes').value;
+    
+    try {
+        const res = await fetch(`/api/hr/student/${studentId}/select`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ offer_notes: notes })
+        });
+        
+        if (res.ok) {
+            alert('✅ Student selected successfully!');
+            currentStatus = 'selected';
+            document.querySelector('.modal').remove();
+            loadStudentDetail();
+        } else {
+            const err = await res.json();
+            alert('❌ Error: ' + (err.error || 'Failed to select student'));
+        }
+    } catch (e) {
+        alert('❌ Error: ' + e.message);
+    }
+}
+
+// Reject Modal
+function openRejectModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>❌ Reject Student</h2>
+            <label>Reason for Rejection:</label>
+            <textarea id="rejectionReason" placeholder="Provide feedback for the candidate" required></textarea>
+            
+            <div class="modal-buttons">
+                <button class="btn" onclick="this.parentElement.parentElement.parentElement.remove()" style="background:#e0e0e0; color:#333;">Cancel</button>
+                <button class="btn btn-danger" onclick="rejectStudent()">Confirm Rejection</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function rejectStudent() {
+    const reason = document.getElementById('rejectionReason').value;
+    
+    if (!reason.trim()) {
+        alert('Please provide a rejection reason');
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/api/hr/student/${studentId}/reject`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: reason })
+        });
+        
+        if (res.ok) {
+            alert('✅ Student rejected successfully!');
+            currentStatus = 'rejected';
+            document.querySelector('.modal').remove();
+            loadStudentDetail();
+        } else {
+            const err = await res.json();
+            alert('❌ Error: ' + (err.error || 'Failed to reject student'));
+        }
+    } catch (e) {
+        alert('❌ Error: ' + e.message);
+    }
 }
 
 async function logout() {

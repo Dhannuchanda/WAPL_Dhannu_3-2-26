@@ -14,6 +14,20 @@ from reportlab.lib.enums import TA_CENTER
 from PIL import Image as PILImage, ImageDraw, ImageFont
 import base64
 import random
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Gmail Configuration
+GMAIL_EMAIL = os.getenv('GMAIL_EMAIL', 'techinfo506168@gmail.com')
+GMAIL_PASSWORD = os.getenv('GMAIL_PASSWORD', '')
+MAIL_SENDER_NAME = os.getenv('MAIL_SENDER_NAME', 'WAPL System')
 
 def generate_otp(length=6):
     """Generate a random OTP"""
@@ -305,6 +319,469 @@ def send_email_simulation(to_email, subject, body):
     print(f"Body:\n{body}")
     print(f"{'='*60}\n")
 
+
+def send_email_gmail(to_email, subject, body, html_body=None, attachment_path=None):
+    """Send email using Gmail SMTP"""
+    try:
+        # Verify credentials are set
+        if not GMAIL_EMAIL or not GMAIL_PASSWORD:
+            print("⚠️ WARNING: Gmail credentials not configured!")
+            print("Please set GMAIL_EMAIL and GMAIL_PASSWORD in .env file")
+            # Fallback to simulation
+            send_email_simulation(to_email, subject, body)
+            return False
+        
+        # Create message
+        message = MIMEMultipart('alternative')
+        message['From'] = f"{MAIL_SENDER_NAME} <{GMAIL_EMAIL}>"
+        message['To'] = to_email
+        message['Subject'] = subject
+        
+        # Attach plain text body
+        message.attach(MIMEText(body, 'plain'))
+        
+        # Attach HTML body if provided
+        if html_body:
+            message.attach(MIMEText(html_body, 'html'))
+        
+        # Attach file if provided
+        if attachment_path and os.path.exists(attachment_path):
+            with open(attachment_path, 'rb') as attachment:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(attachment.read())
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', f'attachment; filename= {os.path.basename(attachment_path)}')
+                message.attach(part)
+        
+        # Send email via Gmail SMTP
+        smtp_server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        smtp_server.login(GMAIL_EMAIL, GMAIL_PASSWORD)
+        smtp_server.send_message(message)
+        smtp_server.quit()
+        
+        print(f"✅ Email sent successfully to {to_email}")
+        return True
+        
+    except smtplib.SMTPAuthenticationError:
+        print(f"❌ Gmail authentication failed!")
+        print("Please check your GMAIL_EMAIL and GMAIL_PASSWORD in .env file")
+        print("Note: Use Gmail App Password, not your regular password")
+        print("Generate at: https://myaccount.google.com/apppasswords")
+        return False
+    except Exception as e:
+        print(f"❌ Error sending email: {str(e)}")
+        print(f"Falling back to simulation...")
+        send_email_simulation(to_email, subject, body)
+        return False
+
+
+def send_otp_email(to_email, otp_code, full_name="User"):
+    """Send OTP email with professional HTML template"""
+    subject = "WAPL Registration - OTP Verification"
+    
+    # Plain text body
+    text_body = f"""
+Hello {full_name},
+
+Your OTP for WAPL Registration is: {otp_code}
+
+This OTP is valid for 10 minutes.
+
+If you did not request this OTP, please ignore this email.
+
+Best regards,
+WAPL System
+"""
+    
+    # HTML body with styling
+    html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }}
+        .header {{
+            background-color: #1f2b44;
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+        }}
+        .header h2 {{
+            margin: 0;
+            font-size: 24px;
+        }}
+        .content {{
+            padding: 20px;
+            background-color: white;
+        }}
+        .otp-box {{
+            background-color: #f0f0f0;
+            border: 2px solid #1f2b44;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px 0;
+        }}
+        .otp-code {{
+            font-size: 36px;
+            font-weight: bold;
+            color: #1f2b44;
+            letter-spacing: 5px;
+            font-family: 'Courier New', monospace;
+        }}
+        .validity {{
+            color: #e74c3c;
+            font-weight: bold;
+            margin-top: 10px;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #ddd;
+        }}
+        .warning {{
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 15px 0;
+            font-size: 14px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>WAPL Registration</h2>
+        </div>
+        <div class="content">
+            <p>Hello <strong>{full_name}</strong>,</p>
+            
+            <p>Thank you for registering with WAPL (Student Portfolio and Placement Management System)!</p>
+            
+            <p>Your OTP (One-Time Password) for email verification is:</p>
+            
+            <div class="otp-box">
+                <div class="otp-code">{otp_code}</div>
+                <div class="validity">⏱️ Valid for 10 minutes</div>
+            </div>
+            
+            <div class="warning">
+                <strong>🔒 Security Notice:</strong> Never share this OTP with anyone. WAPL team will never ask for your OTP.
+            </div>
+            
+            <p>If you did not request this OTP, you can safely ignore this email.</p>
+            
+            <p>Need help? Contact our support team.</p>
+            
+            <p>Best regards,<br><strong>WAPL System</strong></p>
+        </div>
+        <div class="footer">
+            <p>This is an automated email. Please do not reply to this message.</p>
+            <p>&copy; 2026 WAPL - Student Portfolio and Placement Management System</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    
+    return send_email_gmail(to_email, subject, text_body, html_body)
+
+
+def send_registration_confirmation_email(to_email, full_name, wapl_id):
+    """Send registration confirmation email"""
+    subject = "WAPL Registration Successful"
+    
+    text_body = f"""
+Hello {full_name},
+
+Congratulations! Your registration with WAPL is complete.
+
+Your WAPL ID: {wapl_id}
+
+Your account is currently pending admin approval. You will receive an email once your account is activated.
+
+Best regards,
+WAPL System
+"""
+    
+    html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }}
+        .header {{
+            background-color: #27ae60;
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+        }}
+        .header h2 {{
+            margin: 0;
+            font-size: 24px;
+        }}
+        .content {{
+            padding: 20px;
+            background-color: white;
+        }}
+        .wapl-id-box {{
+            background-color: #ecf0f1;
+            border: 2px solid #27ae60;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 15px 0;
+        }}
+        .wapl-id {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #27ae60;
+            font-family: 'Courier New', monospace;
+        }}
+        .info-box {{
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #ddd;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>✅ Registration Successful</h2>
+        </div>
+        <div class="content">
+            <p>Hello <strong>{full_name}</strong>,</p>
+            
+            <p>Congratulations! Your registration with WAPL is complete. We're excited to have you on board!</p>
+            
+            <p>Your unique WAPL ID is:</p>
+            <div class="wapl-id-box">
+                <div class="wapl-id">{wapl_id}</div>
+            </div>
+            
+            <div class="info-box">
+                <strong>ℹ️ Next Step:</strong> Your account is currently pending admin approval. You will receive an email notification once your account is activated and ready to use.
+            </div>
+            
+            <p>Thank you for joining WAPL - Student Portfolio and Placement Management System!</p>
+            
+            <p>Best regards,<br><strong>WAPL System</strong></p>
+        </div>
+        <div class="footer">
+            <p>This is an automated email. Please do not reply to this message.</p>
+            <p>&copy; 2026 WAPL</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    
+    return send_email_gmail(to_email, subject, text_body, html_body)
+
+
+def send_account_activation_email(to_email, full_name, wapl_id):
+    """Send account activation email when admin approves student"""
+    subject = "WAPL Account Activated - Ready to Use"
+    
+    text_body = f"""
+Hello {full_name},
+
+Great news! Your WAPL account has been activated by the admin.
+
+Your WAPL ID: {wapl_id}
+
+Your account is now active and ready to use. You can now:
+- Access your student dashboard
+- View your portfolio
+- Participate in recruitment activities
+- Download your certificates
+
+You can log in using your registered email and password.
+
+Best regards,
+WAPL System
+"""
+    
+    html_body = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }}
+        .header {{
+            background-color: #27ae60;
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+        }}
+        .header h2 {{
+            margin: 0;
+            font-size: 24px;
+        }}
+        .content {{
+            padding: 20px;
+            background-color: white;
+        }}
+        .success-message {{
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }}
+        .wapl-id-box {{
+            background-color: #ecf0f1;
+            border: 2px solid #27ae60;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 15px 0;
+        }}
+        .wapl-id {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #27ae60;
+            font-family: 'Courier New', monospace;
+        }}
+        .features {{
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+        }}
+        .features ul {{
+            margin: 10px 0;
+            padding-left: 20px;
+        }}
+        .features li {{
+            margin: 8px 0;
+        }}
+        .cta-button {{
+            display: inline-block;
+            background-color: #27ae60;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-weight: bold;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #ddd;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>✅ Account Activated</h2>
+        </div>
+        <div class="content">
+            <p>Hello <strong>{full_name}</strong>,</p>
+            
+            <div class="success-message">
+                🎉 Your WAPL account has been activated!
+            </div>
+            
+            <p>Congratulations! The admin has reviewed and approved your registration. Your account is now active and ready to use.</p>
+            
+            <p>Your WAPL ID:</p>
+            <div class="wapl-id-box">
+                <div class="wapl-id">{wapl_id}</div>
+            </div>
+            
+            <div class="features">
+                <strong>✨ What you can now do:</strong>
+                <ul>
+                    <li>Access your personalized student dashboard</li>
+                    <li>Build and manage your portfolio</li>
+                    <li>Participate in recruitment activities</li>
+                    <li>Download your certificates</li>
+                    <li>Update your profile and skills</li>
+                </ul>
+            </div>
+            
+            <p><strong>How to get started:</strong></p>
+            <p>Log in to your account using your registered email and password. You'll be directed to your personalized dashboard.</p>
+            
+            <p>If you have any questions or need assistance, please contact our support team.</p>
+            
+            <p>Best regards,<br><strong>WAPL System</strong></p>
+        </div>
+        <div class="footer">
+            <p>This is an automated email. Please do not reply to this message.</p>
+            <p>&copy; 2026 WAPL - Student Portfolio and Placement Management System</p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    
+    return send_email_gmail(to_email, subject, text_body, html_body)
+
 def sanitize_input(text):
     """Sanitize input to prevent XSS"""
     if not text:
@@ -317,11 +794,11 @@ def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 def save_uploaded_file(file, upload_folder, user_id, file_type):
-    """Save uploaded file with unique name"""
+    """Save uploaded file with unique name - returns only filename"""
     if file and file.filename:
         timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
         filename = f"{user_id}_{timestamp}_{file.filename}"
         filepath = os.path.join(upload_folder, filename)
         file.save(filepath)
-        return filepath
+        return filename  # Return only filename, not the full path
     return None

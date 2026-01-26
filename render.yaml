@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: wapl-system
+    runtime: python
+    runtimeVersion: 3.11
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: VERCEL
+        value: false
+    routes:
+      - path: /
+        matchType: prefix

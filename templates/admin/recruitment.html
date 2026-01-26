@@ -81,7 +81,7 @@ let allRecruitment = [];
 
 async function loadRecruitment() {
     try {
-        const response = await fetch('/api/admin/recruitment-status');
+        const response = await fetch('/api/admin/recruitment');
         const data = await response.json();
         
         if (response.ok) {
@@ -92,6 +92,7 @@ async function loadRecruitment() {
             document.getElementById('recruitmentTable').innerHTML = '<p>Error loading recruitment data</p>';
         }
     } catch (error) {
+        console.error('Error:', error);
         document.getElementById('recruitmentTable').innerHTML = '<p>Error loading recruitment data</p>';
     }
 }
@@ -124,40 +125,40 @@ function renderRecruitment(data) {
     }
     
     let html = `
-        <table>
-            <thead>
+        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <thead style="background: #667eea; color: white;">
                 <tr>
-                    <th>Student</th>
-                    <th>WAPL ID</th>
-                    <th>Domain</th>
-                    <th>HR Name</th>
-                    <th>Company</th>
-                    <th>Status</th>
-                    <th>Notes</th>
-                    <th>Last Updated</th>
+                    <th style="padding: 12px; text-align: left;">Student</th>
+                    <th style="padding: 12px; text-align: left;">WAPL ID</th>
+                    <th style="padding: 12px; text-align: left;">Domain</th>
+                    <th style="padding: 12px; text-align: left;">HR Name</th>
+                    <th style="padding: 12px; text-align: left;">Company</th>
+                    <th style="padding: 12px; text-align: left;">Status</th>
+                    <th style="padding: 12px; text-align: left;">Notes</th>
+                    <th style="padding: 12px; text-align: left;">Last Updated</th>
                 </tr>
             </thead>
             <tbody>
     `;
     
-    data.forEach(item => {
+    data.forEach((item, idx) => {
         const statusClass = getStatusClass(item.status);
         const statusText = formatStatus(item.status);
         const updatedDate = new Date(item.updated_at).toLocaleDateString();
+        const bgColor = idx % 2 === 0 ? '#f9f9f9' : 'white';
         
         html += `
-            <tr>
-                <td>
-                    ${item.profile_pic ? `<img src="/${item.profile_pic}" alt="${item.student_name}" style="width: 30px; height: 30px; border-radius: 50%; vertical-align: middle; margin-right: 0.5rem;">` : ''}
-                    ${item.student_name}
+            <tr style="background: ${bgColor}; border-bottom: 1px solid #e0e0e0;">
+                <td style="padding: 12px;">
+                    <strong>${item.student_name}</strong>
                 </td>
-                <td>${item.wapl_id}</td>
-                <td>${item.domain_name || 'N/A'}</td>
-                <td>${item.hr_name}</td>
-                <td>${item.company_name}</td>
-                <td><span class="status-badge-tiny ${statusClass}">${statusText}</span></td>
-                <td>${item.notes || '-'}</td>
-                <td>${updatedDate}</td>
+                <td style="padding: 12px; font-family: monospace; color: #667eea;">${item.wapl_id}</td>
+                <td style="padding: 12px;">${item.domain_name || 'N/A'}</td>
+                <td style="padding: 12px;">${item.hr_name || 'Unassigned'}</td>
+                <td style="padding: 12px;">${item.company_name || 'N/A'}</td>
+                <td style="padding: 12px;"><span class="status-badge-tiny ${statusClass}" style="padding: 6px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block;">${statusText}</span></td>
+                <td style="padding: 12px; color: #666; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.notes || ''}">${item.notes || '-'}</td>
+                <td style="padding: 12px; color: #999; font-size: 12px;">${updatedDate}</td>
             </tr>
         `;
     });
@@ -168,11 +169,11 @@ function renderRecruitment(data) {
 
 function formatStatus(status) {
     const statusMap = {
-        'viewed': 'Viewed',
-        'shortlisted': 'Shortlisted',
-        'interview_scheduled': 'Interview Scheduled',
-        'selected': 'Selected',
-        'rejected': 'Rejected'
+        'viewed': '👁️ Viewed',
+        'shortlisted': '⭐ Shortlisted',
+        'interview_scheduled': '📅 Interview Scheduled',
+        'selected': '✅ Selected',
+        'rejected': '❌ Rejected'
     };
     return statusMap[status] || status;
 }
@@ -213,12 +214,14 @@ function applyFilters() {
 async function logout() {
     try {
         await fetch('/api/auth/logout', { method: 'POST' });
-        window.location.href = '/secure-admin-panel-wapl/login';
+        window.location.href = '/login';
     } catch (error) {
-        window.location.href = '/secure-admin-panel-wapl/login';
+        window.location.href = '/login';
     }
 }
 
+// Load data every 5 seconds to keep it fresh
 loadRecruitment();
+setInterval(loadRecruitment, 5000);
 </script>
 {% endblock %}

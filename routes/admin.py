@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, session, redirect, url_for, rende
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from database import db
-from utils import generate_wapl_id, sanitize_input
+from utils import generate_wapl_id, sanitize_input, send_account_activation_email
 from functools import wraps
 import json
 import os
@@ -144,6 +144,13 @@ def admin_students():
 def add_student_page():
     """Add student page"""
     return render_template('admin/add_student.html')
+
+
+@admin_bp.route('/secure-admin-panel/wapl/student/<int:student_id>')
+@require_admin_auth
+def student_detail_page(student_id):
+    """Student detail view page"""
+    return render_template('admin/student_detail.html')
 
 
 @admin_bp.route('/secure-admin-panel/wapl/hrs')
@@ -366,9 +373,25 @@ def get_students():
     try:
         students = db.execute_query("""
             SELECT 
-                s.*,
+                s.id,
+                s.user_id,
+                s.wapl_id,
+                s.full_name,
+                s.phone,
+                s.profile_pic,
+                s.resume,
+                s.domain_id,
+                s.registration_date,
+                s.certificate_issued_date,
+                s.certificate_expiry_date,
+                s.assigned_hr_id,
+                s.address,
+                s.education_details,
+                s.skills,
+                s.projects,
+                s.account_status,
                 u.email,
-                h.full_name as hr_name,
+                h.full_name as assigned_hr_name,
                 h.company_name as hr_company,
                 GROUP_CONCAT(d.domain_name, ', ') as domain_names
             FROM students s
@@ -383,6 +406,53 @@ def get_students():
         return jsonify(students), 200
     except Exception as e:
         print(f"Error getting students: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/student/<int:student_id>', methods=['GET'])
+@require_admin_auth
+def get_student_detail(student_id):
+    """Get single student details"""
+    try:
+        student = db.execute_query("""
+            SELECT 
+                s.id,
+                s.user_id,
+                s.wapl_id,
+                s.full_name,
+                s.phone,
+                s.profile_pic,
+                s.resume,
+                s.domain_id,
+                s.registration_date,
+                s.certificate_issued_date,
+                s.certificate_expiry_date,
+                s.assigned_hr_id,
+                s.address,
+                s.education_details,
+                s.skills,
+                s.projects,
+                s.account_status,
+                u.email,
+                h.full_name as assigned_hr_name,
+                h.company_name as hr_company,
+                h.id as assigned_hr_id,
+                GROUP_CONCAT(d.domain_name, ', ') as domain_names
+            FROM students s
+            LEFT JOIN users u ON s.user_id = u.id
+            LEFT JOIN hrs h ON s.assigned_hr_id = h.id
+            LEFT JOIN student_domains sd ON s.id = sd.student_id
+            LEFT JOIN domains d ON sd.domain_id = d.id
+            WHERE s.id = ?
+            GROUP BY s.id
+        """, (student_id,), fetch_one=True)
+        
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+        
+        return jsonify(student), 200
+    except Exception as e:
+        print(f"Error getting student detail: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -535,6 +605,107 @@ def update_student_status(student_id):
         return jsonify({'message': 'Student status updated'}), 200
     except Exception as e:
         print(f"Error updating student status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/student/<int:student_id>/approve', methods=['POST'])
+@require_admin_auth
+def approve_student(student_id):
+    """Approve student (change status from pending to active)"""
+    try:
+        # Get student details
+        student = db.execute_query(
+            "SELECT s.id, s.account_status, s.full_name, s.wapl_id, u.email FROM students s JOIN users u ON s.user_id = u.id WHERE s.id = ?",
+            (student_id,),
+            fetch_one=True
+        )
+        
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+        
+        if student['account_status'] != 'pending':
+            return jsonify({'error': f'Only pending students can be approved. Current status: {student["account_status"]}'}), 400
+        
+        # Update student status
+        db.execute_query(
+            "UPDATE students SET account_status = ? WHERE id = ?",
+            ('active', student_id)
+        )
+        
+        # Send approval email
+        try:
+            send_account_activation_email(
+                to_email=student['email'],
+                full_name=student['full_name'],
+                wapl_id=student['wapl_id']
+            )
+            print(f"✅ Approval email sent to {student['email']}")
+        except Exception as email_error:
+            print(f"⚠️ Warning: Could not send approval email: {str(email_error)}")
+            # Don't fail the approval if email fails
+        
+        print(f"Student {student_id} approved")
+        return jsonify({'message': 'Student approved successfully'}), 200
+    except Exception as e:
+        print(f"Error approving student: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/student/<int:student_id>/suspend', methods=['POST'])
+@require_admin_auth
+def suspend_student(student_id):
+    """Suspend student account"""
+    try:
+        student = db.execute_query(
+            "SELECT account_status FROM students WHERE id = ?",
+            (student_id,),
+            fetch_one=True
+        )
+        
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+        
+        if student['account_status'] == 'suspended':
+            return jsonify({'error': 'Student is already suspended'}), 400
+        
+        db.execute_query(
+            "UPDATE students SET account_status = ? WHERE id = ?",
+            ('suspended', student_id)
+        )
+        
+        print(f"Student {student_id} suspended")
+        return jsonify({'message': 'Student suspended successfully'}), 200
+    except Exception as e:
+        print(f"Error suspending student: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/student/<int:student_id>/activate', methods=['POST'])
+@require_admin_auth
+def activate_student(student_id):
+    """Activate student account (change from suspended or any status to active)"""
+    try:
+        student = db.execute_query(
+            "SELECT account_status FROM students WHERE id = ?",
+            (student_id,),
+            fetch_one=True
+        )
+        
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+        
+        if student['account_status'] == 'active':
+            return jsonify({'error': 'Student is already active'}), 400
+        
+        db.execute_query(
+            "UPDATE students SET account_status = ? WHERE id = ?",
+            ('active', student_id)
+        )
+        
+        print(f"Student {student_id} activated")
+        return jsonify({'message': 'Student activated successfully'}), 200
+    except Exception as e:
+        print(f"Error activating student: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -1050,4 +1221,126 @@ def get_recruitment_stats():
         return jsonify(records), 200
     except Exception as e:
         print(f"Error getting recruitment stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/recruitment/summary', methods=['GET'])
+@require_admin_auth
+def get_recruitment_summary():
+    """Get overall recruitment summary"""
+    try:
+        total_assignments = db.execute_query(
+            'SELECT COUNT(DISTINCT student_id) as count FROM recruitment_status',
+            fetch_one=True
+        )
+        
+        shortlisted = db.execute_query(
+            'SELECT COUNT(*) as count FROM recruitment_status WHERE status = "shortlisted"',
+            fetch_one=True
+        )
+        
+        interviews = db.execute_query(
+            'SELECT COUNT(*) as count FROM recruitment_status WHERE status = "interview_scheduled"',
+            fetch_one=True
+        )
+        
+        selected = db.execute_query(
+            'SELECT COUNT(*) as count FROM recruitment_status WHERE status = "selected"',
+            fetch_one=True
+        )
+        
+        rejected = db.execute_query(
+            'SELECT COUNT(*) as count FROM recruitment_status WHERE status = "rejected"',
+            fetch_one=True
+        )
+        
+        # Get breakdown by HR
+        by_hr = db.execute_query("""
+            SELECT 
+                h.id,
+                h.full_name,
+                h.company_name,
+                COUNT(r.id) as total_actions,
+                SUM(CASE WHEN r.status = 'shortlisted' THEN 1 ELSE 0 END) as shortlisted_count,
+                SUM(CASE WHEN r.status = 'interview_scheduled' THEN 1 ELSE 0 END) as interview_count,
+                SUM(CASE WHEN r.status = 'selected' THEN 1 ELSE 0 END) as selected_count,
+                SUM(CASE WHEN r.status = 'rejected' THEN 1 ELSE 0 END) as rejected_count
+            FROM hrs h
+            LEFT JOIN recruitment_status r ON h.id = r.hr_id
+            GROUP BY h.id
+            ORDER BY total_actions DESC
+        """, fetch_all=True)
+        
+        return jsonify({
+            'total_students_in_pipeline': total_assignments['count'] if total_assignments else 0,
+            'shortlisted': shortlisted['count'] if shortlisted else 0,
+            'interviews_scheduled': interviews['count'] if interviews else 0,
+            'selected': selected['count'] if selected else 0,
+            'rejected': rejected['count'] if rejected else 0,
+            'by_hr': by_hr
+        }), 200
+    except Exception as e:
+        print(f"Error getting recruitment summary: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/recruitment/filter', methods=['GET'])
+@require_admin_auth
+def filter_recruitment():
+    """Filter recruitment records"""
+    try:
+        status_filter = request.args.get('status', '')
+        hr_filter = request.args.get('hr_id', '')
+        
+        query = """
+            SELECT 
+                r.*,
+                s.full_name as student_name,
+                s.wapl_id,
+                s.email,
+                h.full_name as hr_name,
+                h.company_name
+            FROM recruitment_status r
+            LEFT JOIN students s ON r.student_id = s.id
+            LEFT JOIN hrs h ON r.hr_id = h.id
+            WHERE 1=1
+        """
+        
+        params = []
+        
+        if status_filter:
+            query += " AND r.status = ?"
+            params.append(status_filter)
+        
+        if hr_filter:
+            query += " AND r.hr_id = ?"
+            params.append(int(hr_filter))
+        
+        query += " ORDER BY r.updated_at DESC"
+        
+        records = db.execute_query(query, tuple(params), fetch_all=True)
+        return jsonify(records), 200
+    except Exception as e:
+        print(f"Error filtering recruitment: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/recruitment/student/<int:student_id>', methods=['GET'])
+@require_admin_auth
+def get_student_recruitment_history(student_id):
+    """Get recruitment history for a student across all HRs"""
+    try:
+        history = db.execute_query("""
+            SELECT 
+                r.*,
+                h.full_name as hr_name,
+                h.company_name
+            FROM recruitment_status r
+            LEFT JOIN hrs h ON r.hr_id = h.id
+            WHERE r.student_id = ?
+            ORDER BY r.updated_at DESC
+        """, (student_id,), fetch_all=True)
+        
+        return jsonify(history), 200
+    except Exception as e:
+        print(f"Error getting student recruitment history: {e}")
         return jsonify({'error': str(e)}), 500

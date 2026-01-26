@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, session, redirect, url_for, rende
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from database import db
-from utils import generate_otp, send_email_simulation, sanitize_input, generate_wapl_id
+from utils import generate_otp, send_otp_email, send_registration_confirmation_email, sanitize_input, generate_wapl_id
 import secrets
 
 auth_bp = Blueprint('auth', __name__)
@@ -46,13 +46,24 @@ def register():
         
         # Check if email exists
         existing_user = db.execute_query(
-            'SELECT id FROM users WHERE email = ?',
+            'SELECT id, is_verified FROM users WHERE email = ?',
             (email,),
             fetch_one=True
         )
         
         if existing_user:
-            return jsonify({'error': 'Email already registered'}), 400
+            # If email exists but user never verified (abandoned registration), allow re-registration
+            if existing_user['is_verified'] == 0:
+                # Delete the old unverified account so user can start fresh
+                old_user_id = existing_user['id']
+                # Delete OTP records for this user
+                db.execute_query('DELETE FROM otp_verifications WHERE user_id = ?', (old_user_id,))
+                # Delete the unverified user account
+                db.execute_query('DELETE FROM users WHERE id = ?', (old_user_id,))
+                print(f"🔄 Deleted abandoned registration for {email}, allowing new attempt")
+            else:
+                # Email is verified and already registered
+                return jsonify({'error': 'Email already registered'}), 400
         
         # Validate domains exist and are active
         for domain_id in domain_ids:
@@ -91,12 +102,8 @@ def register():
             (user_id, otp_code, 'registration', expires_at)
         )
         
-        # Send OTP email (simulation)
-        send_email_simulation(
-            email,
-            'WAPL Registration - OTP Verification',
-            f'Your OTP for registration is: {otp_code}\nValid for 10 minutes.'
-        )
+        # Send OTP email via Gmail
+        send_otp_email(email, otp_code, full_name)
         
         print(f"🔐 OTP for {email}: {otp_code}")  # Console log for testing
         print(f"Registration initiated for: {email}, User ID: {user_id}")
@@ -187,23 +194,11 @@ def verify_otp():
             
             # Get user email
             email = registration_data.get('email', '')
+            full_name = registration_data.get('full_name', '')
             
-            # Send confirmation email
+            # Send confirmation email via Gmail
             if email:
-                send_email_simulation(
-                    email,
-                    'WAPL Registration Successful',
-                    f'''Congratulations! Your registration is complete.
-
-WAPL ID: {wapl_id}
-
-Your account is currently PENDING ADMIN APPROVAL. 
-You will be able to login once an administrator approves your account.
-
-You will receive a notification email once your account is activated.
-
-Thank you for registering with WAPL!'''
-                )
+                send_registration_confirmation_email(email, full_name, wapl_id)
             
             # Clear session data
             session.pop('pending_registration', None)
@@ -262,11 +257,7 @@ def resend_otp():
         )
         
         if user:
-            send_email_simulation(
-                user['email'],
-                'WAPL Registration - OTP Verification',
-                f'Your new OTP for registration is: {otp_code}\nValid for 10 minutes.'
-            )
+            send_otp_email(user['email'], otp_code, "User")
         
         print(f"🔐 NEW OTP for user_id {user_id}: {otp_code}")  # Console log
         print(f"OTP resent for user_id: {user_id}")
@@ -455,11 +446,7 @@ def forgot_password():
             (user['id'], otp_code, 'password_reset', expires_at)
         )
         
-        send_email_simulation(
-            email,
-            'WAPL Password Reset',
-            f'Your OTP for password reset is: {otp_code}\nValid for 10 minutes.'
-        )
+        send_otp_email(email, otp_code, user_email_name)  # Use name if available
         
         print(f"🔐 Password Reset OTP for {email}: {otp_code}")
         

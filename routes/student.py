@@ -406,11 +406,13 @@ def upload_photo():
             return jsonify({'error': 'Student not found'}), 404
         
         # Delete old profile pic if exists
-        if student['profile_pic'] and os.path.exists(student['profile_pic']):
-            try:
-                os.remove(student['profile_pic'])
-            except Exception as e:
-                print(f"Error deleting old profile pic: {e}")
+        if student['profile_pic']:
+            old_pic_path = os.path.join('uploads/profile_pics', student['profile_pic'])
+            if os.path.exists(old_pic_path):
+                try:
+                    os.remove(old_pic_path)
+                except Exception as e:
+                    print(f"Error deleting old profile pic: {e}")
         
         # Save new file
         filepath = save_uploaded_file(
@@ -450,8 +452,9 @@ def delete_photo():
         # Delete the file from filesystem if it exists
         if student['profile_pic']:
             try:
-                if os.path.exists(student['profile_pic']):
-                    os.remove(student['profile_pic'])
+                pic_path = os.path.join('uploads/profile_pics', student['profile_pic'])
+                if os.path.exists(pic_path):
+                    os.remove(pic_path)
                     print(f"✅ Deleted profile picture: {student['profile_pic']}")
             except Exception as e:
                 print(f"❌ Error deleting file: {e}")
@@ -504,11 +507,13 @@ def upload_resume():
             return jsonify({'error': 'Student not found'}), 404
         
         # Delete old resume if exists
-        if student['resume'] and os.path.exists(student['resume']):
-            try:
-                os.remove(student['resume'])
-            except Exception as e:
-                print(f"Error deleting old resume: {e}")
+        if student['resume']:
+            old_resume_path = os.path.join('uploads/resumes', student['resume'])
+            if os.path.exists(old_resume_path):
+                try:
+                    os.remove(old_resume_path)
+                except Exception as e:
+                    print(f"Error deleting old resume: {e}")
         
         # Save new file
         filepath = save_uploaded_file(
@@ -548,8 +553,9 @@ def delete_resume():
         # Delete the file from filesystem if it exists
         if student['resume']:
             try:
-                if os.path.exists(student['resume']):
-                    os.remove(student['resume'])
+                resume_path = os.path.join('uploads/resumes', student['resume'])
+                if os.path.exists(resume_path):
+                    os.remove(resume_path)
                     print(f"✅ Deleted resume: {student['resume']}")
             except Exception as e:
                 print(f"❌ Error deleting file: {e}")

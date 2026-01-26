@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - WAPL</title>
     <link rel="stylesheet" href="/static/css/admin.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -209,13 +210,18 @@
         }
 
         .chart-placeholder {
-            height: 200px;
+            height: 300px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #f8f9fa;
             border-radius: 8px;
             color: #999;
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
         }
 
         /* Quick Actions */
@@ -288,6 +294,9 @@
                 </a>
                 <a href="/secure-admin-panel/wapl/assign-students">
                     <i>🔗</i> Assign Students
+                </a>
+                <a href="/secure-admin-panel/wapl/recruitment">
+                    <i>📋</i> Recruitment
                 </a>
                 <a href="/secure-admin-panel/wapl/domains" id="domainsLink" style="display: none;">
                     <i>🏷️</i> Domains
@@ -363,23 +372,69 @@
             <!-- Charts Section -->
             <div class="charts-grid">
                 <div class="chart-card">
-                    <h2>Student Account Status</h2>
-                    <div class="chart-placeholder">
-                        <span>Chart: Pending vs Active vs Suspended</span>
+                    <h2>📊 Student Account Status</h2>
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
                     </div>
                 </div>
 
                 <div class="chart-card">
-                    <h2>Students per Domain</h2>
-                    <div class="chart-placeholder">
-                        <span>Chart: Domain Distribution</span>
+                    <h2>🏷️ Students per Domain</h2>
+                    <div class="chart-container">
+                        <canvas id="domainChart"></canvas>
                     </div>
                 </div>
 
                 <div class="chart-card">
-                    <h2>HR Assignments</h2>
-                    <div class="chart-placeholder">
-                        <span>Chart: Students per HR</span>
+                    <h2>👔 HR Assignments</h2>
+                    <div class="chart-container">
+                        <canvas id="hrChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recruitment Statistics Cards -->
+            <div style="margin-top: 30px;">
+                <h2 style="color: #333; margin-bottom: 20px;">📋 Recruitment</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total in Pipeline</h3>
+                        <div class="number" id="recruitmentTotal">0</div>
+                    </div>
+
+                    <div class="stat-card pending">
+                        <h3>👁️ Viewed</h3>
+                        <div class="number" id="recruitmentViewed">0</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <h3>⭐ Shortlisted</h3>
+                        <div class="number" id="recruitmentShortlisted">0</div>
+                    </div>
+
+                    <div class="stat-card active">
+                        <h3>📅 Interviews</h3>
+                        <div class="number" id="recruitmentInterviews">0</div>
+                    </div>
+
+                    <div class="stat-card info">
+                        <h3>✅ Selected</h3>
+                        <div class="number" id="recruitmentSelected">0</div>
+                    </div>
+
+                    <div class="stat-card suspended">
+                        <h3>❌ Rejected</h3>
+                        <div class="number" id="recruitmentRejected">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recruitment Charts -->
+            <div class="charts-grid" style="margin-top: 30px;">
+                <div class="chart-card">
+                    <h2> HR Performance</h2>
+                    <div class="chart-container">
+                        <canvas id="hrPerformanceChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -393,6 +448,9 @@
                     </a>
                     <a href="/secure-admin-panel/wapl/hrs" class="btn btn-primary">
                         👔 Manage HRs
+                    </a>
+                    <a href="/secure-admin-panel/wapl/recruitment" class="btn btn-primary">
+                        📋 Recruitment Tracking
                     </a>
                     <a href="/secure-admin-panel/wapl/certificates" class="btn btn-primary">
                         📜 Issue Certificates
@@ -462,16 +520,325 @@
                 document.getElementById('totalCertificates').textContent = data.total_certificates || 0;
                 document.getElementById('assignedStudents').textContent = data.assigned_students || 0;
                 
-                console.log('✅ Dashboard stats loaded');
+                console.log('✅ Dashboard stats loaded:', data);
+                
+                // Wait for Chart.js to be available
+                if (typeof Chart === 'undefined') {
+                    console.warn('⚠️ Chart.js not loaded yet, retrying in 500ms...');
+                    setTimeout(() => {
+                        renderCharts(data);
+                    }, 500);
+                } else {
+                    renderCharts(data);
+                }
                 
             } catch (error) {
                 console.error('Error loading stats:', error);
             }
         }
 
+        function renderCharts(statsData) {
+            console.log('📊 Rendering charts with data:', statsData);
+            try {
+                renderStatusChart(statsData);
+                renderDomainChart();
+                renderHrChart();
+                loadRecruitmentStats();
+                console.log('✅ All charts rendered successfully');
+            } catch (error) {
+                console.error('❌ Error rendering charts:', error);
+            }
+        }
+
+        // Status Chart - Pie chart showing Pending vs Active vs Suspended
+        let statusChartInstance = null;
+        async function renderStatusChart(statsData) {
+            try {
+                const ctx = document.getElementById('statusChart');
+                if (!ctx) {
+                    console.warn('⚠️ statusChart canvas not found');
+                    return;
+                }
+
+                // Destroy previous chart if exists
+                if (statusChartInstance) {
+                    statusChartInstance.destroy();
+                }
+
+                const pending = statsData.pending_students || 0;
+                const active = statsData.active_students || 0;
+                const suspended = statsData.suspended_students || 0;
+
+                console.log('📊 Creating status chart:', { pending, active, suspended });
+
+                statusChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pending', 'Active', 'Suspended'],
+                        datasets: [{
+                            data: [pending, active, suspended],
+                            backgroundColor: [
+                                '#FFC107',  // Pending - Amber
+                                '#28A745',  // Active - Green
+                                '#DC3545'   // Suspended - Red
+                            ],
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    font: { size: 12 }
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('✅ Status chart created');
+            } catch (error) {
+                console.error('❌ Error creating status chart:', error);
+            }
+        }
+
+        // Domain Chart - Bar chart showing students per domain
+        let domainChartInstance = null;
+        async function renderDomainChart() {
+            try {
+                const ctx = document.getElementById('domainChart');
+                if (!ctx) {
+                    console.warn('⚠️ domainChart canvas not found');
+                    return;
+                }
+
+                const response = await fetch('/api/admin/students');
+                const students = await response.json();
+
+                // Count students by domain
+                const domainCounts = {};
+                students.forEach(student => {
+                    if (student.domain_names) {
+                        const domains = student.domain_names.split(', ');
+                        domains.forEach(domain => {
+                            domain = domain.trim();
+                            domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+                        });
+                    }
+                });
+
+                // Destroy previous chart if exists
+                if (domainChartInstance) {
+                    domainChartInstance.destroy();
+                }
+
+                const labels = Object.keys(domainCounts);
+                const data = Object.values(domainCounts);
+                const colors = [
+                    '#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe',
+                    '#43e97b', '#fa709a', '#fee140', '#30cfd0', '#330867'
+                ];
+
+                console.log('📊 Creating domain chart:', { labels, data });
+
+                domainChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Number of Students',
+                            data: data,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderRadius: 6,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: { font: { size: 12 } }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 }
+                            }
+                        }
+                    }
+                });
+                console.log('✅ Domain chart created');
+            } catch (error) {
+                console.error('❌ Error rendering domain chart:', error);
+            }
+        }
+
+        // HR Chart - Bar chart showing assigned students per HR
+        let hrChartInstance = null;
+        async function renderHrChart() {
+            try {
+                const ctx = document.getElementById('hrChart');
+                if (!ctx) {
+                    console.warn('⚠️ hrChart canvas not found');
+                    return;
+                }
+
+                const response = await fetch('/api/admin/hrs');
+                const hrs = await response.json();
+
+                // Destroy previous chart if exists
+                if (hrChartInstance) {
+                    hrChartInstance.destroy();
+                }
+
+                const labels = hrs.map(hr => hr.full_name || 'Unknown');
+                const data = hrs.map(hr => hr.assigned_count || 0);
+                const colors = [
+                    '#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe',
+                    '#43e97b', '#fa709a', '#fee140', '#30cfd0', '#330867'
+                ];
+
+                console.log('📊 Creating HR chart:', { labels, data });
+
+                hrChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Assigned Students',
+                            data: data,
+                            backgroundColor: colors.slice(0, labels.length),
+                            borderRadius: 6,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: { font: { size: 12 } }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 }
+                            }
+                        }
+                    }
+                });
+                console.log('✅ HR chart created');
+            } catch (error) {
+                console.error('❌ Error rendering HR chart:', error);
+            }
+        }
+
+        // Recruitment Functions
+        let hrPerformanceChart = null;
+
+        async function loadRecruitmentStats() {
+            try {
+                const response = await fetch('/api/admin/recruitment/summary');
+                const data = await response.json();
+                
+                // Update recruitment cards
+                document.getElementById('recruitmentTotal').textContent = data.total_students_in_pipeline || 0;
+                document.getElementById('recruitmentViewed').textContent = data.shortlisted || 0;
+                document.getElementById('recruitmentShortlisted').textContent = data.shortlisted || 0;
+                document.getElementById('recruitmentInterviews').textContent = data.interviews_scheduled || 0;
+                document.getElementById('recruitmentSelected').textContent = data.selected || 0;
+                document.getElementById('recruitmentRejected').textContent = data.rejected || 0;
+                
+                console.log('✅ Recruitment stats loaded:', data);
+                
+                // Render recruitment charts
+                renderHrPerformance(data);
+                
+            } catch (error) {
+                console.error('❌ Error loading recruitment stats:', error);
+            }
+        }
+
+        function renderHrPerformance(data) {
+            try {
+                const ctx = document.getElementById('hrPerformanceChart');
+                if (!ctx) {
+                    console.warn('⚠️ hrPerformanceChart canvas not found');
+                    return;
+                }
+
+                if (hrPerformanceChart) {
+                    hrPerformanceChart.destroy();
+                }
+
+                const byHr = data.by_hr || [];
+                const labels = byHr.map(hr => hr.full_name);
+                const shortlistedCounts = byHr.map(hr => hr.shortlisted_count || 0);
+                const interviewCounts = byHr.map(hr => hr.interview_count || 0);
+                const selectedCounts = byHr.map(hr => hr.selected_count || 0);
+
+                hrPerformanceChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '⭐ Shortlisted',
+                                data: shortlistedCounts,
+                                backgroundColor: '#764ba2',
+                                borderRadius: 6
+                            },
+                            {
+                                label: '📅 Interviews',
+                                data: interviewCounts,
+                                backgroundColor: '#f093fb',
+                                borderRadius: 6
+                            },
+                            {
+                                label: '✅ Selected',
+                                data: selectedCounts,
+                                backgroundColor: '#43e97b',
+                                borderRadius: 6
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: { font: { size: 11 } }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 }
+                            }
+                        }
+                    }
+                });
+                console.log('✅ HR performance chart created');
+            } catch (error) {
+                console.error('❌ Error rendering HR performance chart:', error);
+            }
+        }
+
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🚀 Dashboard loading...');
+            console.log('Chart.js available:', typeof Chart !== 'undefined');
             checkAdminRole();
             loadStats();
         });

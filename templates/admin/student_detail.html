@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Detail - WAPL Admin</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo {
+            padding: 0 20px 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .logo h2 {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .nav-menu {
+            padding: 0 10px;
+        }
+
+        .nav-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: all 0.3s;
+        }
+
+        .nav-menu a:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-menu a.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-menu a i {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+            width: calc(100% - 250px);
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .admin-header h1 {
+            font-size: 28px;
+            margin: 0;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-back {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .btn-back:hover {
+            background: #cbd5e1;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .student-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .student-name-section h2 {
+            font-size: 28px;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+
+        .wapl-id {
+            color: #64748b;
+            font-size: 14px;
+            font-family: monospace;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-suspended {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-revoked {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .info-item {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: #1e293b;
+            word-break: break-all;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+            color: #64748b;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .profile-header-section {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+            margin-bottom: 30px;
+        }
+
+        .profile-picture-container {
+            flex-shrink: 0;
+        }
+
+        .profile-picture {
+            width: 150px;
+            height: 150px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 3px solid #667eea;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .profile-picture.placeholder {
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+        }
+
+        .profile-info-section {
+            flex-grow: 1;
+        }
+
+        .resume-section {
+            background: #f0f7ff;
+            border-left: 4px solid #3b82f6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .resume-section .section-title {
+            margin-bottom: 15px;
+            border: none;
+            padding: 0;
+        }
+
+        .resume-file {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .resume-file-icon {
+            font-size: 30px;
+        }
+
+        .resume-file-info {
+            flex-grow: 1;
+        }
+
+        .resume-file-name {
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+
+        .resume-file-size {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .resume-download-btn {
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .resume-download-btn:hover {
+            background: #2563eb;
+        }
+
+        .no-resume {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px dashed #cbd5e1;
+            color: #64748b;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>🎓 WAPL Admin</h2>
+            </div>
+            <nav class="nav-menu">
+                <a href="/secure-admin-panel/wapl/dashboard">
+                    <i>📊</i> Dashboard
+                </a>
+                <a href="/secure-admin-panel/wapl/students" class="active">
+                    <i>👨‍🎓</i> Students
+                </a>
+                <a href="/secure-admin-panel/wapl/hrs">
+                    <i>👔</i> HRs
+                </a>
+                <a href="/secure-admin-panel/wapl/assign-students">
+                    <i>🔗</i> Assign Students
+                </a>
+                <a href="/secure-admin-panel/wapl/logout">
+                    <i>🚪</i> Logout
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="admin-header">
+                <h1 id="pageTitle">Student Details</h1>
+                <button class="btn btn-back" onclick="goBack()">← Back to Students</button>
+            </div>
+
+            <div id="contentArea"></div>
+        </main>
+    </div>
+
+    <!-- HR Assignment Modal -->
+    <div id="hrModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Assign to HR</div>
+            <div class="modal-body">
+                <div id="hrList" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-back" onclick="closeHRModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const studentId = window.location.pathname.split('/').pop();
+        let studentData = null;
+        let allHRs = [];
+
+        async function loadStudentDetail() {
+            try {
+                const response = await fetch(`/api/admin/student/${studentId}`);
+                if (!response.ok) {
+                    document.getElementById('contentArea').innerHTML = 
+                        '<div class="content-card"><div class="error-message">❌ Student not found</div></div>';
+                    return;
+                }
+
+                studentData = await response.json();
+                displayStudentDetail();
+                loadHRs();
+            } catch (error) {
+                console.error('Error loading student:', error);
+                document.getElementById('contentArea').innerHTML = 
+                    '<div class="content-card"><div class="error-message">❌ Error loading student details</div></div>';
+            }
+        }
+
+        async function loadHRs() {
+            try {
+                const response = await fetch('/api/admin/hrs');
+                allHRs = await response.json();
+            } catch (error) {
+                console.error('Error loading HRs:', error);
+            }
+        }
+
+        function displayStudentDetail() {
+            const statusClass = `status-${studentData.account_status || 'pending'}`;
+            const hrInfo = studentData.assigned_hr_name ? 
+                `<div class="info-item">
+                    <div class="info-label">Assigned HR</div>
+                    <div class="info-value">${studentData.assigned_hr_name}</div>
+                </div>` : 
+                '<div class="info-item"><div class="info-label">Assigned HR</div><div class="info-value">Not Assigned</div></div>';
+
+            // Profile picture - extract just the filename if full path is provided
+            let profilePic = null;
+            if (studentData.profile_pic) {
+                // Get just the filename (last part after all slashes/backslashes)
+                let profileName = studentData.profile_pic.split('/').pop().split('\\').pop();
+                profilePic = `/uploads/profile_pics/${profileName}`;
+            }
+
+            // Resume section
+            let resumeHTML = '';
+            if (studentData.resume) {
+                // Get just the filename (last part after all slashes/backslashes)
+                let resumeFile = studentData.resume.split('/').pop().split('\\').pop();
+                const resumePath = `/download/resumes/${resumeFile}`;
+                const resumeName = resumeFile.split('_').pop();
+                resumeHTML = `
+                    <div class="resume-section">
+                        <div class="section-title">📄 Resume</div>
+                        <div class="resume-file">
+                            <div class="resume-file-icon">📑</div>
+                            <div class="resume-file-info">
+                                <div class="resume-file-name">${resumeName}</div>
+                                <div class="resume-file-size">Click download to view</div>
+                            </div>
+                            <a href="${resumePath}" class="resume-download-btn" download>⬇️ Download</a>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resumeHTML = `
+                    <div class="resume-section">
+                        <div class="section-title">📄 Resume</div>
+                        <div class="no-resume">❌ No resume uploaded</div>
+                    </div>
+                `;
+            }
+
+            const html = `
+                <div class="content-card">
+                    <div class="student-header">
+                        <div class="student-name-section">
+                            <h2>${studentData.full_name || 'N/A'}</h2>
+                            <div class="wapl-id">WAPL ID: ${studentData.wapl_id || 'N/A'}</div>
+                        </div>
+                        <span class="status-badge ${statusClass}">
+                            ${studentData.account_status || 'pending'}
+                        </span>
+                    </div>
+
+                    <div class="profile-header-section">
+                        <div class="profile-picture-container">
+                            ${profilePic ? 
+                                `<img src="${profilePic}" alt="${studentData.full_name}" class="profile-picture" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 150 150%22%3E%3Crect fill=%22%23e2e8f0%22 width=%22150%22 height=%22150%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 font-size=%2250%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22%3E👤%3C/text%3E%3C/svg%3E'">` : 
+                                `<div class="profile-picture placeholder">👤</div>`
+                            }
+                        </div>
+                        <div class="profile-info-section">
+                            ${resumeHTML}
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">📋 Basic Information</div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Full Name</div>
+                                <div class="info-value">${studentData.full_name || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Email</div>
+                                <div class="info-value">${studentData.email || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Phone</div>
+                                <div class="info-value">${studentData.phone || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Address</div>
+                                <div class="info-value">${studentData.address || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Domains</div>
+                                <div class="info-value">${studentData.domain_names || 'N/A'}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Registration Date</div>
+                                <div class="info-value">${formatDate(studentData.registration_date) || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">🏢 HR Assignment</div>
+                        <div class="info-grid">
+                            ${hrInfo}
+                            ${studentData.assigned_hr_name ? 
+                                `<div class="info-item">
+                                    <div class="info-label">Company</div>
+                                    <div class="info-value">${studentData.hr_company || 'N/A'}</div>
+                                </div>` : ''
+                            }
+                        </div>
+                    </div>
+
+                    ${studentData.education_details ? 
+                        `<div class="section">
+                            <div class="section-title">🎓 Education Details</div>
+                            <div class="info-item">
+                                <div class="info-value">${studentData.education_details}</div>
+                            </div>
+                        </div>` : ''
+                    }
+
+                    ${studentData.skills ? 
+                        `<div class="section">
+                            <div class="section-title">💼 Skills</div>
+                            <div class="info-item">
+                                <div class="info-value">${studentData.skills}</div>
+                            </div>
+                        </div>` : ''
+                    }
+
+                    ${studentData.projects ? 
+                        `<div class="section">
+                            <div class="section-title">🚀 Projects</div>
+                            <div class="info-item">
+                                <div class="info-value">${studentData.projects}</div>
+                            </div>
+                        </div>` : ''
+                    }
+
+                    <div class="section">
+                        <div class="section-title">⚙️ Actions</div>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" onclick="openHRModal()">👥 Assign to HR</button>
+                            ${studentData.account_status === 'pending' ? 
+                                `<button class="btn btn-success" onclick="approveStudent()">✓ Approve Student</button>` : ''
+                            }
+                            ${studentData.account_status === 'active' ? 
+                                `<button class="btn btn-warning" onclick="suspendStudent()">⏸ Suspend Account</button>` : ''
+                            }
+                            ${studentData.account_status !== 'active' ? 
+                                `<button class="btn btn-success" onclick="activateStudent()">▶ Activate Account</button>` : ''
+                            }
+                            <button class="btn btn-danger" onclick="deleteStudent()">🗑 Delete Student</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('contentArea').innerHTML = html;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            } catch {
+                return dateString;
+            }
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        async function approveStudent() {
+            if (!confirm('Approve this student?')) return;
+            try {
+                const response = await fetch(`/api/admin/student/${studentId}/approve`, { method: 'POST' });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    loadStudentDetail();
+                } else {
+                    alert('❌ ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ An error occurred');
+            }
+        }
+
+        async function suspendStudent() {
+            if (!confirm('Suspend this student?')) return;
+            try {
+                const response = await fetch(`/api/admin/student/${studentId}/suspend`, { method: 'POST' });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    loadStudentDetail();
+                } else {
+                    alert('❌ ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ An error occurred');
+            }
+        }
+
+        async function activateStudent() {
+            if (!confirm('Activate this student?')) return;
+            try {
+                const response = await fetch(`/api/admin/student/${studentId}/activate`, { method: 'POST' });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    loadStudentDetail();
+                } else {
+                    alert('❌ ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ An error occurred');
+            }
+        }
+
+        async function deleteStudent() {
+            if (!confirm('⚠️ Are you sure? This action cannot be undone!')) return;
+            try {
+                const response = await fetch(`/api/admin/student/${studentId}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    window.location.href = '/secure-admin-panel/wapl/students';
+                } else {
+                    alert('❌ ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ An error occurred');
+            }
+        }
+
+        function openHRModal() {
+            if (!allHRs || allHRs.length === 0) {
+                alert('❌ No HRs available');
+                return;
+            }
+
+            const hrListHTML = allHRs.map(hr => `
+                <div style="padding: 10px; border-bottom: 1px solid #e2e8f0; cursor: pointer;" onclick="assignHR(${hr.id}, '${hr.full_name}')">
+                    <strong>${hr.full_name}</strong><br>
+                    <small>${hr.company_name} - ${hr.email}</small>
+                </div>
+            `).join('');
+
+            document.getElementById('hrList').innerHTML = hrListHTML;
+            document.getElementById('hrModal').classList.add('show');
+        }
+
+        function closeHRModal() {
+            document.getElementById('hrModal').classList.remove('show');
+        }
+
+        async function assignHR(hrId, hrName) {
+            if (!confirm(`Assign this student to ${hrName}?`)) return;
+            try {
+                const response = await fetch('/api/admin/assign-students', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_ids: [studentId], hr_id: hrId })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('✅ ' + data.message);
+                    closeHRModal();
+                    loadStudentDetail();
+                } else {
+                    alert('❌ ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ An error occurred');
+            }
+        }
+
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('hrModal');
+            if (event.target === modal) {
+                closeHRModal();
+            }
+        });
+
+        loadStudentDetail();
+    </script>
+</body>
+</html>

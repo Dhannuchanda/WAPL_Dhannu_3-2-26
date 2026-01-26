@@ -104,6 +104,14 @@ body { font-family:'Segoe UI',Tahoma; background:#f5f7fa; }
     padding:20px;
     border-radius:12px;
     box-shadow:0 2px 12px rgba(0,0,0,0.08);
+    display:flex;
+    flex-direction:column;
+    transition:all 0.3s ease;
+}
+
+.student-card:hover {
+    transform:translateY(-5px);
+    box-shadow:0 5px 20px rgba(0,0,0,0.15);
 }
 
 .student-card img {
@@ -114,6 +122,34 @@ body { font-family:'Segoe UI',Tahoma; background:#f5f7fa; }
     margin-bottom:10px;
 }
 
+.student-card h3 {
+    color:#333;
+    margin:10px 0;
+    font-size:16px;
+}
+
+.student-card p {
+    color:#666;
+    font-size:13px;
+    margin:5px 0;
+}
+
+.status-badge {
+    display:inline-block;
+    padding:6px 10px;
+    border-radius:6px;
+    font-size:12px;
+    font-weight:bold;
+    margin-top:8px;
+    width:fit-content;
+}
+
+.status-viewed { background:#e3f2fd; color:#1976d2; }
+.status-shortlisted { background:#f3e5f5; color:#7b1fa2; }
+.status-interview_scheduled { background:#fff3e0; color:#e65100; }
+.status-selected { background:#e8f5e9; color:#2e7d32; }
+.status-rejected { background:#ffebee; color:#c62828; }
+
 .btn {
     display:inline-block;
     margin-top:10px;
@@ -123,6 +159,14 @@ body { font-family:'Segoe UI',Tahoma; background:#f5f7fa; }
     color:white;
     text-decoration:none;
     font-weight:600;
+    border:none;
+    cursor:pointer;
+    transition:all 0.3s ease;
+}
+
+.btn:hover {
+    transform:translateY(-2px);
+    box-shadow:0 4px 12px rgba(102,126,234,0.4);
 }
 </style>
 </head>
@@ -162,6 +206,14 @@ body { font-family:'Segoe UI',Tahoma; background:#f5f7fa; }
 <script>
 let allStudents=[];
 
+const statusLabels = {
+    'viewed': '👁️ Viewed',
+    'shortlisted': '⭐ Shortlisted',
+    'interview_scheduled': '📅 Interview Scheduled',
+    'selected': '✅ Selected',
+    'rejected': '❌ Rejected'
+};
+
 async function loadDomains(){
     const r=await fetch('/api/domains/active');
     const d=await r.json();
@@ -180,16 +232,23 @@ async function loadStudents(){
     renderStudents(d);
 }
 
+function getStatusBadge(status) {
+    if (!status) status = 'viewed';
+    return `<span class="status-badge status-${status}">${statusLabels[status] || status}</span>`;
+}
+
 function renderStudents(students){
     const c=document.getElementById('studentsList');
     if(!students.length){ c.innerHTML='<p>No students</p>'; return; }
     c.innerHTML=students.map(s=>`
         <div class="student-card">
-            ${s.profile_pic?`<img src="/${s.profile_pic}">`:''}
+            ${s.profile_pic?`<img src="/${s.profile_pic}" alt="${s.full_name}">`:'<div style="width:100%;height:160px;background:#e0e0e0;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;"><span style="color:#999;">No Photo</span></div>'}
             <h3>${s.full_name}</h3>
             <p><b>WAPL ID:</b> ${s.wapl_id}</p>
             <p><b>Email:</b> ${s.email}</p>
-            <a href="/hr/student/${s.id}" class="btn">View Profile</a>
+            <p><b>Domain:</b> ${s.domain_name || 'N/A'}</p>
+            ${getStatusBadge(s.recruitment_status)}
+            <a href="/hr/student/${s.id}" class="btn" style="width:100%;text-align:center;">View & Manage</a>
         </div>
     `).join('');
 }
