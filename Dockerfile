@@ -2,6 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Ensure Python output is sent straight to terminal (e.g. your container logs)
+# without being first buffered and that you can see the output of your application (e.g. django logs) in real time.
+ENV PYTHONUNBUFFERED=1
+
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
@@ -20,8 +25,9 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p uploads/profile_pics uploads/resumes uploads/certificates uploads/qr_codes flask_session fonts
 
-# Expose port
-EXPOSE $PORT
+# Default port (Railway overrides with PORT env var)
+ENV PORT=8080
+EXPOSE 8080
 
-# Start command
-CMD gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+# Start command using shell to expand $PORT
+CMD ["sh", "-c", "gunicorn app:app -w 2 -b 0.0.0.0:$PORT --timeout 120 --log-level debug --access-logfile - --error-logfile -"]

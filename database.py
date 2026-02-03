@@ -8,6 +8,10 @@ from contextlib import contextmanager
 import secrets
 import string
 import urllib.parse
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 # Use /tmp directory on Vercel/Render (serverless), current directory locally
@@ -37,7 +41,13 @@ def get_db_connection():
     try:
         if db_url:
             # PostgreSQL Connection
-            conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+            # Force IPv4 by adding connect_timeout and options
+            conn = psycopg2.connect(
+                db_url, 
+                cursor_factory=RealDictCursor,
+                connect_timeout=10,
+                options='-c statement_timeout=30000'
+            )
             yield conn
         else:
             # SQLite Connection
@@ -60,24 +70,25 @@ def init_db():
     """Initialize database with all tables"""
     db_type = get_db_type()
     
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        
-        # Define types for PostgreSQL compatibility
-        if db_type == 'postgres':
-            pk_type = "SERIAL PRIMARY KEY"
-            datetime_default = "DEFAULT CURRENT_TIMESTAMP"
-            # Boolean in postgres is valid, same as sqlite (0/1 works in sqlite, true/false in pg)
-        else:
-            pk_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
-            datetime_default = "DEFAULT CURRENT_TIMESTAMP"
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Define types for PostgreSQL compatibility
+            if db_type == 'postgres':
+                pk_type = "SERIAL PRIMARY KEY"
+                datetime_default = "DEFAULT CURRENT_TIMESTAMP"
+                # Boolean in postgres is valid, same as sqlite (0/1 works in sqlite, true/false in pg)
+            else:
+                pk_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
+                datetime_default = "DEFAULT CURRENT_TIMESTAMP"
 
-        # Users table
-        cursor.execute(f'''
-            CREATE TABLE IF NOT EXISTS users (
-                id {pk_type},
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
+            # Users table
+            cursor.execute(f'''
+                CREATE TABLE IF NOT EXISTS users (
+                    id {pk_type},
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
                 role TEXT NOT NULL CHECK(role IN ('student', 'hr', 'admin')),
                 is_verified BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP {datetime_default},
@@ -273,6 +284,10 @@ def init_db():
             conn.commit()
 
         print(f"✅ Database initialized successfully ({db_type.upper()})")
+    except Exception as e:
+        logger.error(f"❌ Database initialization failed: {e}")
+        logger.warning("⚠️ App will start but database features may not work until DB is accessible")
+        # Don't crash the app - let it start and handle DB errors at request time
 
 # Database helper class
 class db:

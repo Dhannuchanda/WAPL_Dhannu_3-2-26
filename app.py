@@ -1,7 +1,23 @@
 from flask import Flask, render_template, redirect, url_for, session, send_from_directory
 from flask_session import Session
 import os
+import sys
+import logging
 from dotenv import load_dotenv
+
+# Configure logging for Railway
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
+logger = logging.getLogger(__name__)
+
+# Log startup
+logger.info("="*60)
+logger.info("🚀 Starting WAPL ID Management System")
+logger.info(f"PORT environment variable: {os.environ.get('PORT', 'NOT SET')}")
+logger.info("="*60)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -70,12 +86,23 @@ def ensure_directories():
     return base_path
 
 
-# Create directories and get base path for uploads
-UPLOAD_BASE_PATH = ensure_directories()
 
+# Create directories and get base path for uploads
+try:
+    UPLOAD_BASE_PATH = ensure_directories()
+except Exception as e:
+    logger.error(f"Failed to ensure directories: {e}")
+    # Fallback to current directory to prevent crash
+    UPLOAD_BASE_PATH = '.'
 
 # Initialize database
-init_db()
+try:
+    init_db()
+    logger.info("Database initialized successfully")
+except Exception as e:
+    logger.error(f"Database initialization failed: {e}")
+    # We continue startup so the app can at least bind the port and show logs
+
 
 
 # ==================== REGISTER BLUEPRINTS ====================
