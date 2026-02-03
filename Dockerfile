@@ -13,6 +13,11 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Fix: Prefer IPv4 over IPv6 to prevent "Network is unreachable" errors with Supabase
+# This modifies /etc/gai.conf to give higher precedence to IPv4 mapped addresses
+RUN echo "precedence ::ffff:0:0/96 100" >> /etc/gai.conf
+
+
 # Copy requirements first for caching
 COPY requirements.txt .
 
