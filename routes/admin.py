@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, session, redirect, url_for, render_template, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-from database import db
+from database import db, get_db_type, get_agg_func, is_postgres
 from utils import generate_wapl_id, sanitize_input, send_account_activation_email
 from functools import wraps
 import json
@@ -240,8 +240,9 @@ def get_dashboard_stats():
             fetch_one=True
         )
         
+        is_active_val = "TRUE" if is_postgres() else "1"
         total_domains = db.execute_query(
-            "SELECT COUNT(*) as count FROM domains WHERE is_active = 1",
+            f"SELECT COUNT(*) as count FROM domains WHERE is_active = {is_active_val}",
             fetch_one=True
         )
         
@@ -315,10 +316,12 @@ def create_admin():
             return jsonify({'error': 'Email already registered'}), 400
         
         password_hash = generate_password_hash(password)
-        user_id = db.execute_query(
-            "INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, ?, ?)",
-            (email, password_hash, 'admin', 1)
-        )
+        insert_user_sql = "INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, ?, ?)"
+        if get_db_type() == 'postgres':
+             insert_user_sql = "INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, ?, ?) RETURNING id"
+             user_id = db.execute_query(insert_user_sql, (email, password_hash, 'admin', True), fetch_one=True)['id']
+        else:
+             user_id = db.execute_query(insert_user_sql, (email, password_hash, 'admin', True))
         
         current_admin = db.execute_query("SELECT id FROM admins WHERE user_id = ?", (session['user_id'],), fetch_one=True)
         
@@ -371,7 +374,13 @@ def delete_admin(admin_id):
 def get_students():
     """Get all students"""
     try:
-        students = db.execute_query("""
+        # Database compatibility for string aggregation
+        # Force check environment directly to avoid import issues
+        is_postgres = bool(os.environ.get('DATABASE_URL'))
+        agg_func = "STRING_AGG(d.domain_name, ', ')" if is_postgres else "GROUP_CONCAT(d.domain_name, ', ')"
+        print(f"DEBUG: Executing get_students with is_postgres={is_postgres} agg_func={agg_func[:10]}...")
+        
+        students = db.execute_query(f"""
             SELECT 
                 s.id,
                 s.user_id,
@@ -393,13 +402,17 @@ def get_students():
                 u.email,
                 h.full_name as assigned_hr_name,
                 h.company_name as hr_company,
-                GROUP_CONCAT(d.domain_name, ', ') as domain_names
+                {agg_func} as domain_names
             FROM students s
             LEFT JOIN users u ON s.user_id = u.id
             LEFT JOIN hrs h ON s.assigned_hr_id = h.id
             LEFT JOIN student_domains sd ON s.id = sd.student_id
             LEFT JOIN domains d ON sd.domain_id = d.id
-            GROUP BY s.id
+            GROUP BY s.id, u.email, h.full_name, h.company_name, u.email, 
+                     s.user_id, s.wapl_id, s.full_name, s.phone, s.profile_pic, 
+                     s.resume, s.domain_id, s.registration_date, s.certificate_issued_date, 
+                     s.certificate_expiry_date, s.assigned_hr_id, s.address, 
+                     s.education_details, s.skills, s.projects, s.account_status
             ORDER BY s.registration_date DESC
         """, fetch_all=True)
         
@@ -414,7 +427,10 @@ def get_students():
 def get_student_detail(student_id):
     """Get single student details"""
     try:
-        student = db.execute_query("""
+        # Database compatibility for string aggregation
+        agg_func = "STRING_AGG(d.domain_name, ', ')" if get_db_type() == 'postgres' else "GROUP_CONCAT(d.domain_name, ', ')"
+        
+        student = db.execute_query(f"""
             SELECT 
                 s.id,
                 s.user_id,
@@ -437,14 +453,18 @@ def get_student_detail(student_id):
                 h.full_name as assigned_hr_name,
                 h.company_name as hr_company,
                 h.id as assigned_hr_id,
-                GROUP_CONCAT(d.domain_name, ', ') as domain_names
+                {agg_func} as domain_names
             FROM students s
             LEFT JOIN users u ON s.user_id = u.id
             LEFT JOIN hrs h ON s.assigned_hr_id = h.id
             LEFT JOIN student_domains sd ON s.id = sd.student_id
             LEFT JOIN domains d ON sd.domain_id = d.id
             WHERE s.id = ?
-            GROUP BY s.id
+            GROUP BY s.id, u.email, h.full_name, h.company_name, h.id,
+                     s.user_id, s.wapl_id, s.full_name, s.phone, s.profile_pic, 
+                     s.resume, s.domain_id, s.registration_date, s.certificate_issued_date, 
+                     s.certificate_expiry_date, s.assigned_hr_id, s.address, 
+                     s.education_details, s.skills, s.projects, s.account_status
         """, (student_id,), fetch_one=True)
         
         if not student:
@@ -506,23 +526,27 @@ def create_student():
                 
                 # Update password in case it's different
                 password_hash = generate_password_hash(password)
+                is_verified_val = "TRUE" if is_postgres() else "1"
                 db.execute_query(
-                    'UPDATE users SET password_hash = ?, is_verified = 1 WHERE id = ?',
+                    f'UPDATE users SET password_hash = ?, is_verified = {is_verified_val} WHERE id = ?',
                     (password_hash, user_id)
                 )
         else:
             # Create new user account
             password_hash = generate_password_hash(password)
-            user_id = db.execute_query(
-                'INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, ?, ?)',
-                (email, password_hash, 'student', 1)
-            )
+            insert_user_sql = 'INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, ?, ?)'
+            if get_db_type() == 'postgres':
+                insert_user_sql = 'INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, ?, ?) RETURNING id'
+                user_id = db.execute_query(insert_user_sql, (email, password_hash, 'student', True), fetch_one=True)['id']
+            else:
+                user_id = db.execute_query(insert_user_sql, (email, password_hash, 'student', True))
             print(f"✅ User created with ID: {user_id}")
         
         # Validate domains
+        is_active_val = "TRUE" if is_postgres() else "1"
         for domain_id in domain_ids:
             domain = db.execute_query(
-                'SELECT id FROM domains WHERE id = ? AND is_active = 1',
+                f'SELECT id FROM domains WHERE id = ? AND is_active = {is_active_val}',
                 (domain_id,),
                 fetch_one=True
             )
@@ -536,12 +560,23 @@ def create_student():
         # Create student record
         try:
             # Try new schema with address
-            student_id = db.execute_query(
-                '''INSERT INTO students 
+            # Try new schema with address
+            insert_student_sql = '''INSERT INTO students 
                    (user_id, wapl_id, full_name, phone, address, account_status, registration_date)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                (user_id, wapl_id, full_name, phone, address or '', 'active', datetime.now())
-            )
+                   VALUES (?, ?, ?, ?, ?, ?, ?)'''
+                   
+            if get_db_type() == 'postgres':
+                insert_student_sql += " RETURNING id"
+                student_id = db.execute_query(
+                    insert_student_sql,
+                    (user_id, wapl_id, full_name, phone, address or '', 'active', datetime.now()),
+                    fetch_one=True
+                )['id']
+            else:
+                student_id = db.execute_query(
+                    insert_student_sql,
+                    (user_id, wapl_id, full_name, phone, address or '', 'active', datetime.now())
+                )
             print(f"✅ Student profile created with ID: {student_id}")
         except Exception as schema_error:
             print(f"⚠️ New schema failed, trying old schema: {schema_error}")
@@ -773,10 +808,12 @@ def create_hr():
             return jsonify({'error': 'Email already exists'}), 400
         
         password_hash = generate_password_hash(password)
-        user_id = db.execute_query(
-            "INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, ?, ?)",
-            (email, password_hash, 'hr', 1)
-        )
+        insert_user_sql = "INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, ?, ?)"
+        if get_db_type() == 'postgres':
+             insert_user_sql = "INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, ?, ?) RETURNING id"
+             user_id = db.execute_query(insert_user_sql, (email, password_hash, 'hr', True), fetch_one=True)['id']
+        else:
+             user_id = db.execute_query(insert_user_sql, (email, password_hash, 'hr', True))
         
         current_admin = db.execute_query("SELECT id FROM admins WHERE user_id = ?", (session['user_id'],), fetch_one=True)
         
@@ -816,17 +853,18 @@ def delete_hr(hr_id):
 def get_hr_students(hr_id):
     """Get students assigned to specific HR"""
     try:
-        students = db.execute_query("""
+        agg_func = get_agg_func()
+        students = db.execute_query(f"""
             SELECT 
                 s.*,
                 u.email,
-                GROUP_CONCAT(d.domain_name, ', ') as domain_names
+                {agg_func} as domain_names
             FROM students s
             LEFT JOIN users u ON s.user_id = u.id
             LEFT JOIN student_domains sd ON s.id = sd.student_id
             LEFT JOIN domains d ON sd.domain_id = d.id
             WHERE s.assigned_hr_id = ?
-            GROUP BY s.id
+            GROUP BY s.id, u.email
             ORDER BY s.full_name
         """, (hr_id,), fetch_all=True)
         
@@ -891,17 +929,18 @@ def unassign_students():
 def get_unassigned_students():
     """Get students not assigned to any HR"""
     try:
-        students = db.execute_query("""
+        agg_func = get_agg_func()
+        students = db.execute_query(f"""
             SELECT 
                 s.*,
                 u.email,
-                GROUP_CONCAT(d.domain_name, ', ') as domain_names
+                {agg_func} as domain_names
             FROM students s
             LEFT JOIN users u ON s.user_id = u.id
             LEFT JOIN student_domains sd ON s.id = sd.student_id
             LEFT JOIN domains d ON sd.domain_id = d.id
             WHERE s.assigned_hr_id IS NULL AND s.account_status = 'active'
-            GROUP BY s.id
+            GROUP BY s.id, u.email
             ORDER BY s.full_name
         """, fetch_all=True)
         
@@ -1015,43 +1054,61 @@ def delete_domain(domain_id):
 def get_students_without_certificates():
     """Get all active students without certificates"""
     try:
-        students = db.execute_query("""
+        agg_func = get_agg_func()
+        is_active_val = "TRUE" if is_postgres() else "1"
+        
+        # Debug: Check student_domains table
+        domain_check = db.execute_query("SELECT COUNT(*) as count FROM student_domains", fetch_one=True)
+        print(f"DEBUG: student_domains has {domain_check['count']} entries")
+        
+        students = db.execute_query(f"""
             SELECT 
-                s.*,
+                s.id, s.user_id, s.wapl_id, s.full_name, s.phone, s.address,
+                s.account_status, s.registration_date, s.profile_pic, s.resume,
                 u.email,
-                GROUP_CONCAT(d.domain_name, ', ') as domain_names
+                {agg_func} as domain_names
             FROM students s
             JOIN users u ON s.user_id = u.id
             LEFT JOIN student_domains sd ON s.id = sd.student_id
             LEFT JOIN domains d ON sd.domain_id = d.id
-            LEFT JOIN certificates c ON s.id = c.student_id AND c.is_active = 1
+            LEFT JOIN certificates c ON s.id = c.student_id AND c.is_active = {is_active_val}
             WHERE s.account_status = 'active' AND c.id IS NULL
-            GROUP BY s.id
+            GROUP BY s.id, s.user_id, s.wapl_id, s.full_name, s.phone, s.address,
+                     s.account_status, s.registration_date, s.profile_pic, s.resume, u.email
             ORDER BY s.registration_date DESC
         """, fetch_all=True)
         
-        return jsonify(students), 200
+        print(f"DEBUG: Found {len(students)} students without certificates")
+        for s in students[:3]:
+            print(f"  - {s['full_name']}: domain_names = {s.get('domain_names')}")
+        
+        return jsonify({'students': students}), 200
     except Exception as e:
         print(f"Error getting students without certificates: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
 @admin_bp.route('/api/admin/certificates', methods=['GET'])
 @require_admin_auth
 def get_certificates():
-    """Get all certificates"""
+    """Get all active certificates"""
     try:
-        certificates = db.execute_query("""
+        agg_func = get_agg_func()
+        is_active_val = "TRUE" if is_postgres() else "1"
+        certificates = db.execute_query(f"""
             SELECT 
                 c.*,
                 s.full_name,
                 s.wapl_id,
-                GROUP_CONCAT(d.domain_name, ', ') as domain_names
+                {agg_func} as domain_names
             FROM certificates c
             LEFT JOIN students s ON c.student_id = s.id
             LEFT JOIN student_domains sd ON s.id = sd.student_id
             LEFT JOIN domains d ON sd.domain_id = d.id
-            GROUP BY c.id
+            WHERE c.is_active = {is_active_val}
+            GROUP BY c.id, s.full_name, s.wapl_id
             ORDER BY c.issue_date DESC
         """, fetch_all=True)
         
@@ -1080,21 +1137,23 @@ def issue_certificates():
         
         issued_count = 0
         errors = []
+        agg_func = get_agg_func()
+        is_active_val = "TRUE" if is_postgres() else "1"
         
         for student_id in student_ids:
             try:
                 # Get student details with domains
-                student = db.execute_query("""
+                student = db.execute_query(f"""
                     SELECT 
                         s.*,
                         u.email,
-                        GROUP_CONCAT(d.domain_name, ', ') as domain_names
+                        {agg_func} as domain_names
                     FROM students s
                     LEFT JOIN users u ON s.user_id = u.id
                     LEFT JOIN student_domains sd ON s.id = sd.student_id
                     LEFT JOIN domains d ON sd.domain_id = d.id
                     WHERE s.id = ?
-                    GROUP BY s.id
+                    GROUP BY s.id, u.email
                 """, (student_id,), fetch_one=True)
                 
                 if not student:
@@ -1103,7 +1162,7 @@ def issue_certificates():
                 
                 # Check if already has active certificate
                 existing_cert = db.execute_query(
-                    "SELECT id FROM certificates WHERE student_id = ? AND is_active = 1",
+                    f"SELECT id FROM certificates WHERE student_id = ? AND is_active = {is_active_val}",
                     (student_id,),
                     fetch_one=True
                 )
@@ -1124,7 +1183,9 @@ def issue_certificates():
                 expiry_date_str = expiry_date.strftime('%d %B %Y')
                 
                 # Generate QR code
-                qr_data = f"https://wapl.com/verify/{cert_unique_id}"
+                # Use environment variable for domain, fallback to request host
+                base_domain = os.environ.get('APP_DOMAIN', request.host_url.rstrip('/'))
+                qr_data = f"{base_domain}/verify-certificate/{cert_unique_id}"
                 qr_code_path = f'uploads/qr_codes/{cert_unique_id}_qr.png'
                 generate_qr_code(qr_data, qr_code_path)
                 
@@ -1146,11 +1207,12 @@ def issue_certificates():
                 )
                 
                 # Insert certificate into database
-                db.execute_query("""
+                is_active_val = "TRUE" if is_postgres() else "1"
+                db.execute_query(f"""
                     INSERT INTO certificates 
                     (student_id, certificate_unique_id, issue_date, expiry_date, 
                      qr_code, pdf_path, is_active, display_name) 
-                    VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, {is_active_val}, ?)
                 """, (
                     student_id,
                     cert_unique_id,
@@ -1197,6 +1259,174 @@ def issue_certificates():
         return jsonify({'error': str(e)}), 500
 
 
+@admin_bp.route('/api/admin/certificate/regenerate/<int:student_id>', methods=['POST'])
+@require_admin_auth
+def regenerate_certificate(student_id):
+    """Regenerate certificate for a student"""
+    try:
+        from utils import generate_certificate_id, generate_qr_code, generate_certificate_pdf
+        
+        # Deactivate old certificate
+        is_active_val = "TRUE" if is_postgres() else "1"
+        is_inactive_val = "FALSE" if is_postgres() else "0"
+        db.execute_query(
+            f"UPDATE certificates SET is_active = {is_inactive_val} WHERE student_id = ? AND is_active = {is_active_val}",
+            (student_id,)
+        )
+        
+        # Get student details
+        agg_func = get_agg_func()
+        student = db.execute_query(f"""
+            SELECT 
+                s.*,
+                u.email,
+                {agg_func} as domain_names
+            FROM students s
+            LEFT JOIN users u ON s.user_id = u.id
+            LEFT JOIN student_domains sd ON s.id = sd.student_id
+            LEFT JOIN domains d ON sd.domain_id = d.id
+            WHERE s.id = ?
+            GROUP BY s.id, u.email
+        """, (student_id,), fetch_one=True)
+        
+        if not student:
+            return jsonify({'error': 'Student not found'}), 404
+        
+        # Create directories
+        os.makedirs('uploads/certificates', exist_ok=True)
+        os.makedirs('uploads/qr_codes', exist_ok=True)
+        
+        # Generate new certificate
+        cert_unique_id = generate_certificate_id()
+        issue_date = datetime.now()
+        expiry_date = issue_date + timedelta(days=365)
+        issue_date_str = issue_date.strftime('%d %B %Y')
+        expiry_date_str = expiry_date.strftime('%d %B %Y')
+        
+        # Generate QR code and PDF
+        # Use environment variable for domain, fallback to request host
+        base_domain = os.environ.get('APP_DOMAIN', request.host_url.rstrip('/'))
+        qr_data = f"{base_domain}/verify-certificate/{cert_unique_id}"
+        qr_code_path = f'uploads/qr_codes/{cert_unique_id}_qr.png'
+        generate_qr_code(qr_data, qr_code_path)
+        
+        pdf_path = f'uploads/certificates/{cert_unique_id}.pdf'
+        domain_display = student['domain_names'] if student['domain_names'] else 'General Training'
+        
+        generate_certificate_pdf(
+            student_name=student['full_name'],
+            wapl_id=student['wapl_id'],
+            domain_name=domain_display,
+            issue_date=issue_date_str,
+            expiry_date=expiry_date_str,
+            qr_code_path=qr_code_path,
+            output_path=pdf_path,
+            hr_name=None,
+            certificate_text=f"This certificate recognizes the candidate's hands-on experience in {domain_display} and successful assessment by WAPL."
+        )
+        
+        # Insert new certificate
+        db.execute_query("""
+            INSERT INTO certificates 
+            (student_id, certificate_unique_id, issue_date, expiry_date, 
+             qr_code, pdf_path, is_active, display_name) 
+            VALUES (?, ?, ?, ?, ?, ?, TRUE, ?)
+        """, (
+            student_id,
+            cert_unique_id,
+            issue_date,
+            expiry_date,
+            qr_code_path,
+            pdf_path,
+            student['full_name']
+        ))
+        
+        # Update student record
+        db.execute_query("""
+            UPDATE students 
+            SET certificate_issued_date = ?, certificate_expiry_date = ? 
+            WHERE id = ?
+        """, (issue_date, expiry_date, student_id))
+        
+        print(f"✅ Certificate {cert_unique_id} regenerated for {student['full_name']}")
+        
+        return jsonify({
+            'message': 'Certificate regenerated successfully',
+            'certificate_id': cert_unique_id
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error regenerating certificate: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/download/certificate/<string:cert_id>', methods=['GET'])
+@require_admin_auth
+def download_certificate_admin(cert_id):
+    """Download certificate PDF - Admin access"""
+    try:
+        is_active_val = "TRUE" if is_postgres() else "1"
+        cert = db.execute_query(
+            f"SELECT * FROM certificates WHERE certificate_unique_id = ? AND is_active = {is_active_val}",
+            (cert_id,),
+            fetch_one=True
+        )
+        
+        if not cert:
+            return jsonify({'error': 'Certificate not found'}), 404
+        
+        pdf_path = cert['pdf_path']
+        if not os.path.exists(pdf_path):
+            return jsonify({'error': 'Certificate file not found'}), 404
+        
+        return send_file(pdf_path, as_attachment=True, download_name=f"{cert_id}.pdf")
+        
+    except Exception as e:
+        print(f"❌ Error downloading certificate: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/certificate/<int:cert_id>', methods=['DELETE'])
+@require_admin_auth
+def delete_certificate(cert_id):
+    """Delete/deactivate a certificate"""
+    try:
+        # Get certificate details
+        cert = db.execute_query(
+            "SELECT * FROM certificates WHERE id = ?",
+            (cert_id,),
+            fetch_one=True
+        )
+        
+        if not cert:
+            return jsonify({'error': 'Certificate not found'}), 404
+        
+        # Deactivate certificate
+        is_inactive_val = "FALSE" if is_postgres() else "0"
+        db.execute_query(
+            f"UPDATE certificates SET is_active = {is_inactive_val} WHERE id = ?",
+            (cert_id,)
+        )
+        
+        # Log audit trail
+        db.execute_query("""
+            INSERT INTO certificate_audit (certificate_id, action, reason, changed_by_admin_id)
+            VALUES (?, 'deactivate', 'Deleted by admin', ?)
+        """, (cert_id, session.get('user_id')))
+        
+        print(f"✅ Certificate {cert['certificate_unique_id']} deactivated")
+        
+        return jsonify({'message': 'Certificate deleted successfully'}), 200
+        
+    except Exception as e:
+        print(f"❌ Error deleting certificate: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 # ==================== RECRUITMENT ROUTES ====================
 
 
@@ -1234,22 +1464,22 @@ def get_recruitment_summary():
         )
         
         shortlisted = db.execute_query(
-            'SELECT COUNT(*) as count FROM recruitment_status WHERE status = "shortlisted"',
+            "SELECT COUNT(*) as count FROM recruitment_status WHERE status = 'shortlisted'",
             fetch_one=True
         )
         
         interviews = db.execute_query(
-            'SELECT COUNT(*) as count FROM recruitment_status WHERE status = "interview_scheduled"',
+            "SELECT COUNT(*) as count FROM recruitment_status WHERE status = 'interview_scheduled'",
             fetch_one=True
         )
         
         selected = db.execute_query(
-            'SELECT COUNT(*) as count FROM recruitment_status WHERE status = "selected"',
+            "SELECT COUNT(*) as count FROM recruitment_status WHERE status = 'selected'",
             fetch_one=True
         )
         
         rejected = db.execute_query(
-            'SELECT COUNT(*) as count FROM recruitment_status WHERE status = "rejected"',
+            "SELECT COUNT(*) as count FROM recruitment_status WHERE status = 'rejected'",
             fetch_one=True
         )
         

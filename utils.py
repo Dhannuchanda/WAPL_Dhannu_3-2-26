@@ -793,12 +793,19 @@ def allowed_file(filename, allowed_extensions):
     """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
+from storage import Storage
+
 def save_uploaded_file(file, upload_folder, user_id, file_type):
-    """Save uploaded file with unique name - returns only filename"""
+    """Save uploaded file using Storage abstraction - returns path or URL"""
     if file and file.filename:
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        filename = f"{user_id}_{timestamp}_{file.filename}"
-        filepath = os.path.join(upload_folder, filename)
-        file.save(filepath)
-        return filename  # Return only filename, not the full path
+        # Extract subfolder from e.g. 'uploads/resumes' -> 'resumes'
+        normalized_folder = upload_folder.replace('\\', '/')
+        
+        if 'uploads/' in normalized_folder:
+            parts = normalized_folder.split('uploads/')
+            subfolder = parts[1] if len(parts) > 1 else ''
+        else:
+            subfolder = normalized_folder
+            
+        return Storage.save_file(file, subfolder=subfolder)
     return None

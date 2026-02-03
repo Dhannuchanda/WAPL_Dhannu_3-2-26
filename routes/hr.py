@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, session, redirect, url_for, send_file
 from datetime import datetime
-from database import db
+from database import db, get_db_type, get_agg_func, is_postgres
 from utils import sanitize_input, generate_certificate_id, generate_qr_code, generate_certificate_pdf
+from storage import Storage
 import json
 import os
 
@@ -107,9 +108,10 @@ def get_student(student_id):
             return jsonify({'error': 'Student not found or not assigned to you'}), 404
         
         # Get active certificate
+        is_active_val = "TRUE" if is_postgres() else "1"
         certificate = db.execute_query(
-            '''SELECT * FROM certificates 
-               WHERE student_id = ? AND expiry_date > ? AND is_active = 1
+            f'''SELECT * FROM certificates 
+               WHERE student_id = ? AND expiry_date > ? AND is_active = {is_active_val}
                ORDER BY issue_date DESC LIMIT 1''',
             (student_id, datetime.now()),
             fetch_one=True
@@ -621,25 +623,25 @@ def get_recruitment_summary():
         )
         
         shortlisted = db.execute_query(
-            'SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = "shortlisted"',
+            "SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = 'shortlisted'",
             (hr_id,),
             fetch_one=True
         )
         
         interviews = db.execute_query(
-            'SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = "interview_scheduled"',
+            "SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = 'interview_scheduled'",
             (hr_id,),
             fetch_one=True
         )
         
         selected = db.execute_query(
-            'SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = "selected"',
+            "SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = 'selected'",
             (hr_id,),
             fetch_one=True
         )
         
         rejected = db.execute_query(
-            'SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = "rejected"',
+            "SELECT COUNT(*) as count FROM recruitment_status WHERE hr_id = ? AND status = 'rejected'",
             (hr_id,),
             fetch_one=True
         )
@@ -679,6 +681,39 @@ def hr_students():
 def hr_student_detail(student_id):
     from flask import render_template
     return render_template('hr/student_detail.html')
+
+@hr_bp.route('/download/certificate/<string:cert_id>', methods=['GET'])
+@require_hr_auth
+def download_certificate_hr(cert_id):
+    """Download certificate PDF - HR access"""
+    try:
+        is_active_val = "TRUE" if is_postgres() else "1"
+        cert = db.execute_query(
+            f"SELECT * FROM certificates WHERE certificate_unique_id = ? AND is_active = {is_active_val}",
+            (cert_id,),
+            fetch_one=True
+        )
+        
+        if not cert:
+            return jsonify({'error': 'Certificate not found'}), 404
+        
+        pdf_path = cert['pdf_path']
+        if not pdf_path:
+             return jsonify({'error': 'Certificate file not found'}), 404
+             
+        # If it's a URL (Supabase), redirect
+        if pdf_path.startswith('http'):
+            return redirect(pdf_path)
+            
+        if not os.path.exists(pdf_path):
+            return jsonify({'error': 'Certificate file not found'}), 404
+        
+        return send_file(pdf_path, as_attachment=True, download_name=f"{cert_id}.pdf")
+        
+    except Exception as e:
+        print(f"❌ Error downloading certificate: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @hr_bp.route('/api/hr/issue-certificate/<int:student_id>', methods=['POST'])
 @require_hr_auth
 def issue_certificate(student_id):
@@ -724,25 +759,42 @@ def issue_certificate(student_id):
         
         # Generate QR code
         qr_data = f"{request.host_url}verify-certificate/{cert_unique_id}"
-        qr_code_path = os.path.join('uploads', 'qr_codes', f'{cert_unique_id}.png')
-        os.makedirs(os.path.dirname(qr_code_path), exist_ok=True)
-        # QR links back to the public verifier so printed copies remain verifiable
-        generate_qr_code(qr_data, qr_code_path)
+        qr_subfolder = 'uploads/qr_codes'
+        qr_filename = f'{cert_unique_id}.png'
+        
+        # Local path for generation (ensure dir exists)
+        local_qr_dir = os.path.join(os.getcwd(), qr_subfolder)
+        os.makedirs(local_qr_dir, exist_ok=True)
+        local_qr_path = os.path.join(local_qr_dir, qr_filename)
+        
+        generate_qr_code(qr_data, local_qr_path)
+        
+        # Upload QR to Storage
+        qr_code_path = Storage.upload_local_file(local_qr_path, subfolder='qr_codes')
         
         # Generate PDF certificate with custom text and HR name
-        pdf_path = os.path.join('uploads', 'certificates', f'{cert_unique_id}.pdf')
-        os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+        cert_subfolder = 'uploads/certificates'
+        cert_filename = f'{cert_unique_id}.pdf'
+        
+        # Local path for generation
+        local_cert_dir = os.path.join(os.getcwd(), cert_subfolder)
+        os.makedirs(local_cert_dir, exist_ok=True)
+        local_cert_path = os.path.join(local_cert_dir, cert_filename)
+        
         generate_certificate_pdf(
             student['full_name'],
             student['wapl_id'],
             student['domain_name'],
             issue_date.strftime('%Y-%m-%d'),
             expiry_date.strftime('%Y-%m-%d'),
-            qr_code_path,
-            pdf_path,
+            local_qr_path, # Use local path for embedding in PDF
+            local_cert_path,
             hr_name=hr_name,
             certificate_text=certificate_text
         )
+        
+        # Upload Certificate to Storage
+        pdf_path = Storage.upload_local_file(local_cert_path, subfolder='certificates')
         
         # Create certificate record
         db.execute_query(
@@ -754,8 +806,8 @@ def issue_certificate(student_id):
                 cert_unique_id,
                 issue_date,
                 expiry_date,
-                qr_code_path,
-                pdf_path,
+                qr_code_path, # URL or relative path
+                pdf_path,    # URL or relative path
                 hr_id
             )
         )

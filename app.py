@@ -139,6 +139,8 @@ def serve_upload(filename):
         mime_type = 'image/jpeg'
     elif filename.lower().endswith('.png'):
         mime_type = 'image/png'
+    elif filename.lower().endswith('.mp4'):
+        mime_type = 'video/mp4'
     else:
         mime_type = 'application/octet-stream'
     

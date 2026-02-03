@@ -643,10 +643,28 @@
             <div id="successAlert" class="alert alert-success"></div>
             <div id="errorAlert" class="alert alert-error"></div>
 
+            <!-- Students Without Certificates Section -->
+            <div class="content-card" id="studentsWithoutCertsCard" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                    <h2 style="margin: 0;">👨‍🎓 Students Without Certificates (<span id="studentCount">0</span>)</h2>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="selectAllStudents()" class="btn btn-secondary">✓ Select All</button>
+                        <button onclick="issueSelectedCertificates()" class="btn btn-success" id="issueSelectedBtn" disabled>🎓 Issue to Selected</button>
+                    </div>
+                </div>
+                
+                <div id="studentsWithoutCertsList" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px; padding: 10px;">
+                    <!-- Students list will be loaded here -->
+                </div>
+            </div>
+
             <div class="content-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                     <h2 style="margin: 0;">📋 All Certificates</h2>
-                    <button onclick="generateAllCertificates()" class="btn btn-primary">🎓 Generate All Certificates</button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="toggleStudentsSection()" class="btn btn-secondary" id="toggleStudentsBtn">👨‍🎓 Show Students</button>
+                        <button onclick="generateAllCertificates()" class="btn btn-primary">🎓 Generate All Certificates</button>
+                    </div>
                 </div>
 
                 <!-- Filter Section -->
@@ -927,21 +945,151 @@
             }
         }
 
-        async function generateAllCertificates() {
-            if (!confirm('🎓 Generate certificates for all students?\n\nThis will create certificates for students who don\'t have one yet.')) {
+        let selectedStudents = new Set();
+
+        async function toggleStudentsSection() {
+            const card = document.getElementById('studentsWithoutCertsCard');
+            const btn = document.getElementById('toggleStudentsBtn');
+            
+            if (card.style.display === 'none') {
+                card.style.display = 'block';
+                btn.textContent = '👨‍🎓 Hide Students';
+                await loadStudentsWithoutCertificates();
+            } else {
+                card.style.display = 'none';
+                btn.textContent = '👨‍🎓 Show Students';
+            }
+        }
+
+        async function loadStudentsWithoutCertificates() {
+            try {
+                const response = await fetch('/api/admin/students/without-certificates');
+                const data = await response.json();
+                
+                if (!data.students || data.students.length === 0) {
+                    document.getElementById('studentsWithoutCertsList').innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">✅ All students have certificates!</p>';
+                    document.getElementById('studentCount').textContent = '0';
+                    return;
+                }
+                
+                document.getElementById('studentCount').textContent = data.students.length;
+                
+                const html = data.students.map(student => `
+                    <div class="student-item" style="padding: 12px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 12px; transition: background-color 0.2s;">
+                        <input type="checkbox" 
+                               id="student_${student.id}" 
+                               value="${student.id}" 
+                               onchange="updateSelectedStudents()"
+                               style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="student_${student.id}" style="flex: 1; cursor: pointer; margin: 0;">
+                            <div style="font-weight: 500; color: #333;">${student.full_name}</div>
+                            <div style="font-size: 0.9em; color: #666;">${student.wapl_id} • ${student.domain_names || 'No domain'}</div>
+                        </label>
+                    </div>
+                `).join('');
+                
+                document.getElementById('studentsWithoutCertsList').innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Failed to load students');
+            }
+        }
+
+        function updateSelectedStudents() {
+            selectedStudents.clear();
+            document.querySelectorAll('#studentsWithoutCertsList input[type="checkbox"]:checked').forEach(cb => {
+                selectedStudents.add(parseInt(cb.value));
+            });
+            
+            const btn = document.getElementById('issueSelectedBtn');
+            btn.disabled = selectedStudents.size === 0;
+            btn.textContent = selectedStudents.size > 0 
+                ? `🎓 Issue to Selected (${selectedStudents.size})` 
+                : '🎓 Issue to Selected';
+        }
+
+        function selectAllStudents() {
+            const checkboxes = document.querySelectorAll('#studentsWithoutCertsList input[type="checkbox"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+            });
+            
+            updateSelectedStudents();
+        }
+
+        async function issueSelectedCertificates() {
+            if (selectedStudents.size === 0) {
+                showError('Please select at least one student');
+                return;
+            }
+            
+            if (!confirm(`🎓 Issue certificates to ${selectedStudents.size} selected student(s)?`)) {
                 return;
             }
             
             try {
-                const response = await fetch('/api/admin/certificates/generate-all', {
-                    method: 'POST'
+                const response = await fetch('/api/admin/certificates/issue', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        studentIds: Array.from(selectedStudents)
+                    })
                 });
                 
                 const data = await response.json();
                 
                 if (response.ok) {
                     showSuccess(`✅ ${data.message}`);
-                    loadCertificates();
+                    selectedStudents.clear();
+                    await loadStudentsWithoutCertificates();
+                    await loadCertificates();
+                } else {
+                    showError(data.error || 'Failed to issue certificates');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('An error occurred while issuing certificates');
+            }
+        }
+
+        async function generateAllCertificates() {
+            if (!confirm('🎓 Generate certificates for all students?\n\nThis will create certificates for students who don\'t have one yet.')) {
+                return;
+            }
+            
+            try {
+                // First, get all students without certificates
+                const studentsResponse = await fetch('/api/admin/students/without-certificates');
+                const studentsData = await studentsResponse.json();
+                
+                if (!studentsData.students || studentsData.students.length === 0) {
+                    showError('No students found without certificates');
+                    return;
+                }
+                
+                const studentIds = studentsData.students.map(s => s.id);
+                
+                const response = await fetch('/api/admin/certificates/issue', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        studentIds: studentIds
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showSuccess(`✅ ${data.message}`);
+                    await loadStudentsWithoutCertificates();
+                    await loadCertificates();
                 } else {
                     showError(data.error || 'Failed to generate certificates');
                 }

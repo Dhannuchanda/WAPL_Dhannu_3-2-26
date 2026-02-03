@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Registration - WAPL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,24 +14,72 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            /* Fallback */
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            color: #fff;
+        }
+
+        /* Video Background */
+        .video-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            z-index: -2;
+            /* Below overlay */
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            /* 70% dark = 30% visibility */
+            z-index: -1;
+            backdrop-filter: blur(3px);
+            /* Subtle blur for depth */
         }
 
         .registration-container {
-            background: white;
+            background: rgba(30, 41, 59, 0.4);
+            /* Dark glass */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            max-width: 600px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            max-width: 550px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
+            position: relative;
+            z-index: 10;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .logo-section {
@@ -38,30 +88,35 @@
         }
 
         h1 {
-            color: #333;
-            font-size: 28px;
+            color: #fff;
+            font-size: 32px;
             margin-bottom: 10px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .subtitle {
-            color: #666;
-            font-size: 14px;
+            color: #94a3b8;
+            font-size: 15px;
         }
 
         .form-group {
             margin-bottom: 20px;
+            position: relative;
         }
 
         label {
             display: block;
             margin-bottom: 8px;
-            color: #333;
-            font-weight: bold;
-            font-size: 14px;
+            color: #e2e8f0;
+            font-weight: 500;
+            font-size: 0.9rem;
         }
 
         label .required {
-            color: red;
+            color: #f87171;
         }
 
         input[type="text"],
@@ -70,138 +125,315 @@
         input[type="tel"],
         textarea {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-            font-family: 'Arial', sans-serif;
+            padding: 14px 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            font-size: 15px;
+            color: white;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
         }
 
         input:focus,
         textarea:focus {
             outline: none;
-            border-color: #667eea;
+            background: rgba(0, 0, 0, 0.4);
+            border-color: #818cf8;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         }
 
         textarea {
             resize: vertical;
-            min-height: 80px;
+            min-height: 100px;
         }
 
+        /* Domain Section Styling */
         .domains-section {
-            margin-bottom: 20px;
-        }
-
-        .domains-section label {
-            margin-bottom: 12px;
+            margin-bottom: 25px;
         }
 
         #domainContainer {
-            border: 2px solid #ddd;
-            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
             padding: 15px;
             max-height: 200px;
             overflow-y: auto;
-            background-color: #f9f9f9;
-        }
-
-        .domain-checkbox {
-            margin-bottom: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
         }
 
         .domain-checkbox label {
             display: flex;
             align-items: center;
-            font-weight: normal;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.2s;
             cursor: pointer;
-            padding: 8px;
-            border-radius: 4px;
-            transition: background-color 0.2s;
+            margin-bottom: 0;
+            color: #cbd5e1;
+            font-weight: 400;
         }
 
         .domain-checkbox label:hover {
-            background-color: #f0f0f0;
-        }
-
-        .domain-checkbox input[type="checkbox"] {
-            width: auto;
-            margin-right: 10px;
-            cursor: pointer;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            margin-top: 10px;
-        }
-
-        .btn-primary {
-            background-color: #667eea;
+            background-color: rgba(255, 255, 255, 0.05);
             color: white;
         }
 
+        .domain-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            accent-color: #6366f1;
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+        }
+
         .btn-primary:hover:not(:disabled) {
-            background-color: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.5);
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
         }
 
         .btn-primary:disabled {
-            background-color: #ccc;
+            background: #475569;
             cursor: not-allowed;
+            color: #94a3b8;
+            box-shadow: none;
         }
 
         .login-link {
             text-align: center;
-            margin-top: 20px;
-            color: #666;
+            margin-top: 25px;
+            color: #94a3b8;
+            font-size: 0.95rem;
         }
 
         .login-link a {
-            color: #667eea;
+            color: #818cf8;
             text-decoration: none;
-            font-weight: bold;
+            font-weight: 600;
+            transition: color 0.2s;
         }
 
         .login-link a:hover {
-            text-decoration: underline;
+            color: #a5b4fc;
+            text-decoration: none;
+        }
+
+        /* Messages */
+        .error-message,
+        .success-message {
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            font-weight: 500;
+            display: none;
+            backdrop-filter: blur(10px);
         }
 
         .error-message {
-            background-color: #fee;
-            color: #c33;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: none;
+            background-color: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
         }
 
         .success-message {
-            background-color: #efe;
-            color: #3c3;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: none;
+            background-color: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
         }
 
         .password-requirements {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 8px;
+            margin-left: 5px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Success Animation Overlay */
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .success-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .success-modal {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            transform: scale(0.8);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .success-overlay.active .success-modal {
+            transform: scale(1);
+        }
+
+        .checkmark-circle {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            display: inline-block;
+            vertical-align: top;
+            margin-bottom: 20px;
+        }
+
+        .checkmark-circle .background {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #22c55e;
+            position: absolute;
+        }
+
+        .checkmark-circle .checkmark {
+            border-radius: 5px;
+        }
+
+        .checkmark-circle .checkmark.draw:after {
+            animation-delay: 100ms;
+            animation-duration: 1s;
+            animation-timing-function: ease;
+            animation-name: checkmark;
+            transform: scaleX(-1) rotate(135deg);
+            animation-fill-mode: forwards;
+        }
+
+        .checkmark-circle .checkmark:after {
+            opacity: 1;
+            height: 40px;
+            width: 20px;
+            transform-origin: left top;
+            border-right: 4px solid white;
+            border-top: 4px solid white;
+            content: '';
+            left: 20px;
+            top: 40px;
+            position: absolute;
+        }
+
+        @keyframes checkmark {
+            0% {
+                height: 0;
+                width: 0;
+                opacity: 1;
+            }
+
+            20% {
+                height: 0;
+                width: 20px;
+                opacity: 1;
+            }
+
+            40% {
+                height: 40px;
+                width: 20px;
+                opacity: 1;
+            }
+
+            100% {
+                height: 40px;
+                width: 20px;
+                opacity: 1;
+            }
+        }
+
+        .success-text h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .success-text p {
+            color: #cbd5e1;
+            font-size: 16px;
         }
     </style>
 </head>
+
 <body>
+    <!-- Video Background -->
+    <video autoplay muted loop playsinline class="video-bg">
+        <source src="/uploads/logo/logo.mp4" type="video/mp4">
+    </video>
+    <div class="overlay"></div>
+
+    <!-- Success Overlay -->
+    <div id="successOverlay" class="success-overlay">
+        <div class="success-modal">
+            <div class="checkmark-circle">
+                <div class="background"></div>
+                <div class="checkmark draw"></div>
+            </div>
+            <div class="success-text">
+                <h2>Registration Successful!</h2>
+                <p>Redirecting to verification...</p>
+            </div>
+        </div>
+    </div>
+
     <div class="registration-container">
         <div class="logo-section">
-            <h1>WAPL Student Registration</h1>
-            <p class="subtitle">Create your account to get started</p>
+            <h1>Create Account</h1>
+            <p class="subtitle">Join the WAPL Student Community</p>
         </div>
 
         <div id="errorMessage" class="error-message"></div>
@@ -233,7 +465,8 @@
                 <div id="domainContainer">
                     <p style="text-align: center; color: #999;">Loading domains...</p>
                 </div>
-                <p style="font-size: 12px; color: #666; margin-top: 5px;">Choose one or more technology domains you're interested in</p>
+                <p style="font-size: 12px; color: #666; margin-top: 5px;">Choose one or more technology domains you're
+                    interested in</p>
             </div>
 
             <div class="form-group">
@@ -261,23 +494,23 @@
             try {
                 const response = await fetch('/api/admin/domains');
                 const domains = await response.json();
-                
+
                 const domainContainer = document.getElementById('domainContainer');
                 domainContainer.innerHTML = '';
-                
+
                 if (!domains || domains.length === 0) {
                     domainContainer.innerHTML = '<p style="text-align: center; color: #999;">No domains available</p>';
                     return;
                 }
-                
+
                 // Filter only active domains
                 const activeDomains = domains.filter(d => d.is_active);
-                
+
                 if (activeDomains.length === 0) {
                     domainContainer.innerHTML = '<p style="text-align: center; color: #999;">No active domains available</p>';
                     return;
                 }
-                
+
                 activeDomains.forEach(domain => {
                     const checkbox = document.createElement('div');
                     checkbox.className = 'domain-checkbox';
@@ -301,7 +534,7 @@
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
-            
+
             // Hide after 5 seconds
             setTimeout(() => {
                 errorDiv.style.display = 'none';
@@ -318,57 +551,57 @@
         // Handle registration form submission
         document.getElementById('registrationForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             // Hide any previous messages
             document.getElementById('errorMessage').style.display = 'none';
             document.getElementById('successMessage').style.display = 'none';
-            
+
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const fullName = document.getElementById('fullName').value.trim();
             const phone = document.getElementById('phone').value.trim();
             const address = document.getElementById('address').value.trim();
-            
+
             // Get selected domains
             const selectedDomains = [];
             document.querySelectorAll('input[name="domain"]:checked').forEach(checkbox => {
                 selectedDomains.push(parseInt(checkbox.value));
             });
-            
+
             // Validation
             if (!email || !password || !fullName || !phone) {
                 showError('Please fill all required fields');
                 return;
             }
-            
+
             if (selectedDomains.length === 0) {
                 showError('Please select at least one domain');
                 return;
             }
-            
+
             if (password !== confirmPassword) {
                 showError('Passwords do not match');
                 return;
             }
-            
+
             if (password.length < 6) {
                 showError('Password must be at least 6 characters');
                 return;
             }
-            
+
             // Email validation
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
                 showError('Please enter a valid email address');
                 return;
             }
-            
+
             // Disable submit button
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.textContent = 'Registering...';
-            
+
             try {
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
@@ -382,18 +615,21 @@
                         domain_ids: selectedDomains  // Send as array
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (response.ok) {
-                    showSuccess(data.message + ' Redirecting to OTP verification...');
+                    // Show animation instead of simple message
+                    const overlay = document.getElementById('successOverlay');
+                    overlay.classList.add('active');
+
                     // Store user_id for OTP verification
                     sessionStorage.setItem('registration_user_id', data.user_id);
-                    
-                    // Redirect to OTP page after 2 seconds
+
+                    // Redirect to OTP page after 2.5 seconds
                     setTimeout(() => {
                         window.location.href = '/verify-otp';
-                    }, 2000);
+                    }, 2500);
                 } else {
                     showError(data.error || 'Registration failed. Please try again.');
                     submitBtn.disabled = false;
@@ -413,4 +649,5 @@
         });
     </script>
 </body>
+
 </html>

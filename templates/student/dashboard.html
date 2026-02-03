@@ -1,10 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Student Dashboard - WAPL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --accent-color: #667eea;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --bg-gradient: radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,8 +28,29 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            background-image:
+                radial-gradient(at 40% 20%, hsla(260, 100%, 93%, 1) 0px, transparent 50%),
+                radial-gradient(at 80% 0%, hsla(189, 100%, 96%, 1) 0px, transparent 50%),
+                radial-gradient(at 0% 50%, hsla(340, 100%, 96%, 1) 0px, transparent 50%),
+                radial-gradient(at 80% 50%, hsla(356, 100%, 96%, 1) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(22, 100%, 96%, 1) 0px, transparent 50%),
+                radial-gradient(at 80% 100%, hsla(242, 100%, 96%, 1) 0px, transparent 50%),
+                radial-gradient(at 0% 0%, hsla(343, 100%, 96%, 1) 0px, transparent 50%);
+            background-attachment: fixed;
+            background-size: cover;
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        /* Glass Utility */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
         }
 
         .student-container {
@@ -21,364 +58,350 @@
             min-height: 100vh;
         }
 
-        /* Hamburger Menu Button */
-        .hamburger-btn {
-            display: none;
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            z-index: 1001;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 8px;
-            padding: 10px 12px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .hamburger-btn span {
-            display: block;
-            width: 25px;
-            height: 3px;
-            background: white;
-            margin: 5px 0;
-            border-radius: 2px;
-        }
-
         /* Sidebar */
         .sidebar {
-            width: 250px;
-            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px 0;
-            position: fixed;
+            width: 280px;
             height: 100vh;
-            overflow-y: auto;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 100;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
             transition: transform 0.3s ease;
-            z-index: 1000;
         }
 
         .logo {
-            padding: 0 20px 30px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 20px;
+            margin-bottom: 3rem;
+            padding-left: 0.5rem;
         }
 
         .logo h2 {
-            font-size: 24px;
-            font-weight: bold;
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
         }
 
         .logo p {
-            font-size: 13px;
-            color: rgba(255,255,255,0.7);
-            margin-top: 5px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 0.25rem;
         }
 
         .nav-menu {
-            padding: 0 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
-        .nav-menu a,
-        .nav-menu button {
+        .nav-item {
             display: flex;
             align-items: center;
-            padding: 12px 20px;
-            color: rgba(255,255,255,0.8);
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            color: var(--text-muted);
             text-decoration: none;
-            border-radius: 8px;
-            margin-bottom: 5px;
-            transition: all 0.3s;
-            background: none;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            font-size: 0.95rem;
             border: none;
-            cursor: pointer;
-            font-size: 14px;
+            background: none;
             width: 100%;
+            cursor: pointer;
             text-align: left;
-            font-family: inherit;
         }
 
-        .nav-menu a:hover,
-        .nav-menu button:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.5);
+            color: var(--accent-color);
+            transform: translateX(5px);
         }
 
-        .nav-menu a.active {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            font-weight: bold;
+        .nav-item.active {
+            background: white;
+            color: var(--accent-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            font-weight: 600;
         }
 
-        .nav-menu a i,
-        .nav-menu button i {
-            margin-right: 10px;
-            font-size: 18px;
+        .nav-item i {
+            font-size: 1.25rem;
+            width: 1.5rem;
+            text-align: center;
             font-style: normal;
         }
 
         /* Main Content */
         .main-content {
-            margin-left: 250px;
-            padding: 30px;
-            width: calc(100% - 250px);
-            transition: margin-left 0.3s ease, width 0.3s ease;
+            margin-left: 280px;
+            width: calc(100% - 280px);
+            padding: 2rem 3rem;
         }
 
-        .page-header {
+        .header-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
-            padding: 20px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+            margin-bottom: 2.5rem;
         }
 
-        .page-header h1 {
-            margin: 0;
-            font-size: 28px;
+        .header-title h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-main);
         }
 
-        .role-badge {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            background: #fff;
-            color: #667eea;
+        .header-title p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
         }
 
-        .welcome-text {
-            opacity: 0.95;
-            font-size: 14px;
-        }
-
-        /* Profile Section */
-        .profile-section {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-        }
-
-        .profile-content {
+        .user-pill {
             display: flex;
             align-items: center;
-            gap: 30px;
+            gap: 1rem;
+            padding: 0.5rem 0.5rem 0.5rem 1rem;
+            border-radius: 50px;
+            background: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
         }
 
-        .profile-pic {
-            width: 100px;
-            height: 100px;
+        .user-avatar {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            object-fit: cover;
-            border: 4px solid rgba(255,255,255,0.3);
-            flex-shrink: 0;
-        }
-
-        .profile-placeholder {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.15);
+            background: var(--primary-gradient);
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
             font-weight: 600;
-            border: 4px solid rgba(255,255,255,0.3);
-            flex-shrink: 0;
+            font-size: 1rem;
+            overflow: hidden;
         }
 
-        .profile-info h2 {
-            font-size: 24px;
-            margin-bottom: 10px;
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
-        .profile-info p {
-            margin: 5px 0;
-            font-size: 14px;
-            opacity: 0.95;
+        .user-info {
+            text-align: right;
+            margin-right: 0.5rem;
         }
 
-        /* Stats Grid */
-        .stats-grid {
+        .user-info .name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .user-info .role {
+            font-size: 0.75rem;
+            color: var(--accent-color);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Stats Row */
+        .stats-row {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
         }
 
         .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-            border-left: 4px solid #667eea;
-            transition: transform 0.3s, box-shadow 0.3s;
+            padding: 1.5rem;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: transform 0.2s;
+            position: relative;
+            overflow: hidden;
         }
 
         .stat-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
         }
 
-        .stat-card h3 {
-            color: #666;
-            font-size: 12px;
-            margin-bottom: 10px;
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-color);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .stat-card .info-text {
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-            word-break: break-word;
-        }
-
-        .stat-card.active { border-left-color: #28a745; }
-        .stat-card.pending { border-left-color: #ffc107; }
-        .stat-card.info { border-left-color: #17a2b8; }
-
-        /* Content Card */
-        .content-card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
-        }
-
-        .content-card h2 {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        .info-content {
-            color: #555;
-            line-height: 1.8;
-        }
-
-        .info-content p {
-            margin: 10px 0;
-            font-size: 14px;
-        }
-
-        .info-content strong {
-            color: #333;
-            font-weight: 600;
-        }
-
-        /* Status Badges */
-        .status-badge-tiny {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 10px;
+        .stat-value {
+            font-size: 1.5rem;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            color: var(--text-main);
+            word-break: break-all;
         }
 
-        .status-selected { background-color: #27ae60; color: white; }
-        .status-viewed { background-color: #f39c12; color: white; }
-        .status-interview { background-color: #3498db; color: white; }
-        .status-rejected { background-color: #e74c3c; color: white; }
-        .status-shortlisted { background-color: #9b59b6; color: white; }
-        .status-active { background-color: #27ae60; color: white; }
-        .status-expired { background-color: #e74c3c; color: white; }
-
-        /* Skills */
-        .skills-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
         }
 
-        .skill-tag {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 7px 15px;
+        .section-card {
+            padding: 2rem;
             border-radius: 20px;
-            font-size: 13px;
-            font-weight: 600;
+            height: 100%;
         }
 
-        /* Dashboard Items */
-        .dashboard-item {
-            padding: 15px;
-            margin-bottom: 10px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-        }
-
-        .dashboard-item h3 {
-            color: #2c3e50;
-            margin: 0 0 8px 0;
-            font-size: 15px;
-            font-weight: 600;
-        }
-
-        .dashboard-item p {
-            margin: 4px 0;
-            font-size: 13px;
-        }
-
-        /* Buttons */
-        .btn {
-            display: inline-flex;
+        .section-header {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border: none;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .info-item label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+
+        .info-item p {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        /* Documents Section */
+        .docs-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .doc-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            transition: background 0.2s;
+        }
+
+        .doc-item:hover {
+            background: white;
+        }
+
+        .doc-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .doc-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: #e0e7ff;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
             border-radius: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
+            font-weight: 600;
+            font-size: 0.85rem;
             text-decoration: none;
-            margin: 5px 5px 5px 0;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
             color: white;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #d1d5db;
+            color: var(--text-main);
         }
 
-        .btn-secondary:hover {
-            background: #5a6268;
+        .btn-outline:hover {
+            background: white;
+            border-color: var(--accent-color);
+            color: var(--accent-color);
         }
 
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 15px;
+        /* Mobile Responsive */
+        .hamburger-btn {
+            display: none;
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-main);
         }
 
-        /* Sidebar Overlay */
         .sidebar-overlay {
             display: none;
             position: fixed;
@@ -386,18 +409,21 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            z-index: 90;
         }
 
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .hamburger-btn {
-                display: block;
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
             }
+        }
 
+        @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
+                background: rgba(255, 255, 255, 0.95);
             }
 
             .sidebar.active {
@@ -411,463 +437,521 @@
             .main-content {
                 margin-left: 0;
                 width: 100%;
-                padding: 80px 15px 15px;
+                padding: 1.5rem;
             }
 
-            .page-header {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 15px 20px;
-                gap: 10px;
+            .hamburger-btn {
+                display: block;
             }
 
-            .page-header h1 {
-                font-size: 22px;
+            .header-bar {
+                gap: 1rem;
             }
 
-            .welcome-text {
-                font-size: 13px;
+            .user-info {
+                display: none;
             }
 
-            .profile-section {
-                padding: 20px 15px;
-            }
-
-            .profile-content {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .profile-info h2 {
-                font-size: 20px;
-            }
-
-            .stats-grid {
+            .info-grid {
                 grid-template-columns: 1fr;
-                gap: 15px;
-            }
-
-            .stat-card {
-                padding: 20px;
-            }
-
-            .content-card {
-                padding: 20px 15px;
-            }
-
-            .content-card h2 {
-                font-size: 16px;
-            }
-
-            .action-buttons {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-                justify-content: center;
-                margin: 5px 0;
             }
         }
 
-        @media (max-width: 480px) {
-            .main-content {
-                padding: 70px 10px 10px;
-            }
-
-            .page-header h1 {
-                font-size: 20px;
-            }
-
-            .profile-pic,
-            .profile-placeholder {
-                width: 80px;
-                height: 80px;
-            }
-
-            .profile-info h2 {
-                font-size: 18px;
-            }
-
-            .stat-card {
-                padding: 15px;
-            }
-
-            .content-card {
-                padding: 15px 10px;
-            }
+        /* Status Badges */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
         }
 
-        /* Loading */
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .badge-active {
+            background: #dcfce7;
+            color: #166534;
         }
 
-        .loading-spinner {
+        .badge-pending {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .badge-expired {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Loading Spinner */
+        .loading-overlay {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50px;
-            height: 50px;
-            border: 5px solid #e0e0e0;
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             z-index: 9999;
+            transition: opacity 0.3s;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e7ff;
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ========================
+    LOGOUT ANIMATION STYLES
+    ======================== */
+        .logout-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #111827;
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .door-container {
+            position: relative;
+            width: 120px;
+            height: 200px;
+            transform-style: preserve-3d;
+        }
+
+        .door-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 4px solid #4b5563;
+            border-bottom: none;
+            background: #1f2937;
+        }
+
+        .door {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #374151;
+            transform-origin: left;
+            transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid #6b7280;
+            display: flex;
+            align-items: center;
+        }
+
+        .door-knob {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #fbbf24;
+            margin-left: auto;
+            margin-right: 15px;
+            box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .light-beam {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), transparent);
+            transform: rotateY(90deg);
+            transform-origin: left;
+            transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .person {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 40px;
+            height: 100px;
+            background: #fff;
+            transform: translateX(-50%) translateZ(20px) scale(0);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            transition: all 1s ease-in-out;
+        }
+
+        .logout-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .logout-overlay.animate .door {
+            transform: rotateY(-110deg);
+        }
+
+        .logout-overlay.animate .light-beam {
+            transform: rotateY(0deg);
+            opacity: 0.5;
+        }
+
+        .logout-overlay.animate .person {
+            animation: exitDoor 1.5s forwards 0.5s;
+            opacity: 1;
+            transform: translateX(-50%) translateZ(0) scale(1);
+        }
+
+        @keyframes exitDoor {
+            0% {
+                transform: translateX(-50%) scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: translateX(-50%) scale(0.8);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: translateX(-100px) scale(0);
+                opacity: 0;
+            }
         }
     </style>
 </head>
-<body>
-    <!-- Hamburger Menu Button -->
-    <button class="hamburger-btn" onclick="toggleSidebar()">
-        <span></span>
-        <span></span>
-        <span></span>
-    </button>
 
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Logout Animation Overlay -->
+    <div class="logout-overlay" id="logoutOverlay">
+        <div class="door-container">
+            <div class="light-beam"></div>
+            <div class="door-frame"></div>
+            <div class="person"></div>
+            <div class="door">
+                <div class="door-knob"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
     <div class="student-container">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="logo">
-                <h2>🎓 WAPL Student</h2>
-                <p>Student Portal</p>
+
+        <!-- Glass Sidebar -->
+        <aside class="sidebar glass" id="sidebar">
+            <div class="logo" style="text-align: center; padding-left: 0;">
+                <video autoplay muted loop playsinline
+                    style="width: 100%; max-width: 180px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <source src="/uploads/logo/logo.mp4" type="video/mp4">
+                    <h2>WAPL</h2>
+                </video>
             </div>
+
             <nav class="nav-menu">
-                <a href="/student/dashboard" class="active">
-                    <i>📊</i> <span>Dashboard</span>
+                <a href="/student/dashboard" class="nav-item active">
+                    <i>📊</i> Dashboard
                 </a>
-                <a href="/student/profile">
-                    <i>👤</i> <span>My Profile</span>
+                <a href="/student/profile" class="nav-item">
+                    <i>👤</i> My Profile
                 </a>
-                <a href="/student/certificate">
-                    <i>📜</i> <span>Certificate</span>
+                <a href="/student/certificate" class="nav-item">
+                    <i>📜</i> Certificate
                 </a>
-                <button onclick="logout()">
-                    <i>🚪</i> <span>Logout</span>
+                <button onclick="triggerLogout()" class="nav-item" style="color: #ef4444; margin-top: auto;">
+                    <i>🚪</i> Logout
                 </button>
             </nav>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
-            <div class="page-header">
-                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
-                    <h1>Student Dashboard</h1>
-                    <span class="role-badge">STUDENT</span>
+
+            <!-- Header -->
+            <header class="header-bar">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+                    <div class="header-title">
+                        <h1>Dashboard</h1>
+                        <p>Welcome back, <span id="welcomeName">Student</span> 👋</p>
+                    </div>
                 </div>
-                <div class="welcome-text">
-                    Welcome back, <span id="headerName">Student</span>! 👋
+
+                <div class="user-pill">
+                    <div class="user-info">
+                        <div class="name" id="pillName">Loading...</div>
+                        <div class="role">Student</div>
+                    </div>
+                    <div class="user-avatar" id="headerAvatar">
+                        <span>S</span>
+                    </div>
                 </div>
-            </div>
+            </header>
 
-            <!-- Profile Section -->
-            <div class="profile-section">
-                <div id="profileHeader">
-                    <p style="text-align: center;">Loading profile...</p>
+            <div class="dashboard-grid">
+
+                <!-- Top Row: Stats -->
+                <div class="stats-row">
+                    <div class="stat-card glass">
+                        <span class="stat-label">WAPL ID</span>
+                        <span class="stat-value" id="statId">...</span>
+                    </div>
+                    <div class="stat-card glass" style="--accent-color: #10b981;">
+                        <span class="stat-label">Status</span>
+                        <span class="stat-value" id="statStatus">...</span>
+                    </div>
+                    <div class="stat-card glass" style="--accent-color: #f59e0b;">
+                        <span class="stat-label">Domain</span>
+                        <span class="stat-value" id="statDomain">...</span>
+                    </div>
+                    <div class="stat-card glass" style="--accent-color: #3b82f6;">
+                        <span class="stat-label">Phone</span>
+                        <span class="stat-value" id="statPhone">...</span>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Stats Grid -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <h3>WAPL ID</h3>
-                    <div class="info-text" id="statWaplId">-</div>
-                </div>
-                <div class="stat-card active">
-                    <h3>Account Status</h3>
-                    <div class="info-text" id="statStatus">-</div>
-                </div>
-                <div class="stat-card info">
-                    <h3>Domain</h3>
-                    <div class="info-text" id="statDomain">-</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Phone Number</h3>
-                    <div class="info-text" id="statPhone">-</div>
-                </div>
-            </div>
+                <!-- Main Content Grid -->
+                <div class="content-grid">
 
-            <!-- Personal Info -->
-            <div class="content-card">
-                <h2>📋 Personal Information</h2>
-                <div class="info-content" id="personalInfo">Loading...</div>
-            </div>
+                    <!-- Left Column: Personal Info -->
+                    <div class="section-card glass">
+                        <div class="section-header">
+                            <div class="section-title">
+                                <span>📋</span> Personal Information
+                            </div>
+                            <a href="/student/profile" class="btn btn-outline">Edit</a>
+                        </div>
 
-            <!-- Resume -->
-            <div class="content-card">
-                <h2>📄 Resume</h2>
-                <div class="info-content" id="resumeSection">No resume uploaded</div>
-            </div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Full Name</label>
+                                <p id="infoName">-</p>
+                            </div>
+                            <div class="info-item">
+                                <label>Email</label>
+                                <p id="infoEmail" style="font-size: 0.9rem; word-break: break-all;">-</p>
+                            </div>
+                            <div class="info-item">
+                                <label>Phone</label>
+                                <p id="infoPhone">-</p>
+                            </div>
+                            <div class="info-item">
+                                <label>Address</label>
+                                <p id="infoAddress">-</p>
+                            </div>
+                        </div>
 
-            <!-- Certificate -->
-            <div class="content-card">
-                <h2>📜 Certificate</h2>
-                <div class="info-content" id="certificateSection">Loading...</div>
-            </div>
+                        <div id="hrSection" style="margin-top: 2rem; display: none;">
+                            <div
+                                style="background: rgba(102, 126, 234, 0.1); padding: 1rem; border-radius: 12px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                                <label
+                                    style="font-size: 0.75rem; color: #667eea; font-weight: 700; text-transform: uppercase;">Assigned
+                                    HR</label>
+                                <p style="font-weight: 600; margin-top: 0.25rem;" id="hrName">Name</p>
+                                <p style="font-size: 0.85rem; color: var(--text-muted);" id="hrCompany">Company</p>
+                            </div>
+                        </div>
+                    </div>
 
-            <!-- Education -->
-            <div class="content-card" id="educationCard" style="display: none;">
-                <h2>🎓 Education Details</h2>
-                <div class="info-content" id="educationSection"></div>
-            </div>
+                    <!-- Right Column: Documents & Actions -->
+                    <div style="display: flex; flex-direction: column; gap: 2rem;">
 
-            <!-- Skills -->
-            <div class="content-card" id="skillsCard" style="display: none;">
-                <h2>💡 Skills</h2>
-                <div class="info-content" id="skillsSection"></div>
-            </div>
+                        <!-- Documents -->
+                        <div class="section-card glass">
+                            <div class="section-header">
+                                <div class="section-title">
+                                    <span>📂</span> Documents
+                                </div>
+                            </div>
 
-            <!-- Projects -->
-            <div class="content-card" id="projectsCard" style="display: none;">
-                <h2>🚀 Projects</h2>
-                <div class="info-content" id="projectsSection"></div>
-            </div>
+                            <div class="docs-container">
+                                <!-- Resume -->
+                                <div class="doc-item">
+                                    <div class="doc-info">
+                                        <div class="doc-icon">📄</div>
+                                        <div>
+                                            <p style="font-weight: 600;">Resume</p>
+                                            <p style="font-size: 0.75rem; color: var(--text-muted);" id="resumeStatus">
+                                                Checking...</p>
+                                        </div>
+                                    </div>
+                                    <div id="resumeActions" style="margin-top: 10px;">
+                                        <!-- Buttons injected by JS -->
+                                    </div>
+                                </div>
 
-            <!-- Quick Actions -->
-            <div class="content-card">
-                <h2>⚡ Quick Actions</h2>
-                <div class="action-buttons">
-                    <a href="/student/profile" class="btn btn-primary">✏️ Edit Profile</a>
-                    <a href="/student/certificate" class="btn btn-primary">📜 View Certificate</a>
+                                <!-- Certificate -->
+                                <div class="doc-item">
+                                    <div class="doc-info">
+                                        <div class="doc-icon">📜</div>
+                                        <div>
+                                            <p style="font-weight: 600;">Certificate</p>
+                                            <p style="font-size: 0.75rem; color: var(--text-muted);" id="certStatus">
+                                                Checking...</p>
+                                        </div>
+                                    </div>
+                                    <a href="/student/certificate" class="btn btn-outline">Details</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Skills/Extra -->
+                        <div class="section-card glass" id="skillsCard" style="display: none;">
+                            <div class="section-header">
+                                <div class="section-title">
+                                    <span>💡</span> Skills
+                                </div>
+                            </div>
+                            <div id="skillsList" style="display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
     <script>
+        // State
+        const state = {
+            profile: null,
+            certificate: null
+        };
+
+        // UI Helpers
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('active');
             document.querySelector('.sidebar-overlay').classList.toggle('active');
         }
 
-        function closeSidebar() {
-            document.getElementById('sidebar').classList.remove('active');
-            document.querySelector('.sidebar-overlay').classList.remove('active');
+        // --- LOGOUT ANIMATION ---
+        function triggerLogout() {
+            const overlay = document.getElementById('logoutOverlay');
+            overlay.classList.add('active');
+
+            // Start animation after a brief delay
+            setTimeout(() => {
+                overlay.classList.add('animate');
+            }, 100);
+
+            // Redirect after animation completes (approx 2s)
+            setTimeout(async () => {
+                try {
+                    await fetch('/api/auth/logout', { method: 'POST' });
+                    window.location.href = '/login';
+                } catch { window.location.href = '/login'; }
+            }, 2000);
         }
 
-        document.querySelectorAll('.nav-menu a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth <= 768) {
-                    closeSidebar();
-                }
-            });
-        });
-
-        function showLoading() {
-            const spinner = document.createElement('div');
-            spinner.className = 'loading-spinner';
-            spinner.id = 'loadingSpinner';
-            document.body.appendChild(spinner);
+        function setBinder(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text || '-';
         }
 
-        function hideLoading() {
-            const spinner = document.getElementById('loadingSpinner');
-            if (spinner) spinner.remove();
-        }
-
-        async function loadDashboard() {
+        // Data Loading
+        async function loadProfile() {
             try {
-                showLoading();
-                
-                const response = await fetch('/api/student/profile');
-                const profile = await response.json();
-                
-                if (response.ok) {
-                    document.getElementById('headerName').textContent = profile.full_name || 'Student';
-                    renderProfileHeader(profile);
-                    updateStats(profile);
-                    renderPersonalInfo(profile);
-                    renderResume(profile);
-                    await loadCertificate();
-                    renderEducation(profile);
-                    renderSkills(profile);
-                    renderProjects(profile);
-                } else {
-                    document.getElementById('profileHeader').innerHTML = '<p>Error loading profile</p>';
+                const res = await fetch('/api/student/profile');
+                if (!res.ok) throw new Error('Failed to load');
+                const p = await res.json();
+                state.profile = p;
+
+                // Header
+                setBinder('welcomeName', p.full_name);
+                setBinder('pillName', p.full_name);
+                if (p.profile_pic) {
+                    let picPath = p.profile_pic;
+                    if (!picPath.startsWith('uploads/')) {
+                        picPath = 'uploads/profile_pics/' + picPath;
+                    }
+                    document.getElementById('headerAvatar').innerHTML = `<img src="/${picPath}" alt="Avatar">`;
                 }
-                
-                hideLoading();
-            } catch (error) {
-                console.error('Dashboard load error:', error);
-                hideLoading();
-            }
-        }
 
-        function renderProfileHeader(profile) {
-            let profilePicHtml = '';
-            if (profile.profile_pic) {
-                const picPath = profile.profile_pic.startsWith('/') ? profile.profile_pic : '/' + profile.profile_pic;
-                profilePicHtml = `<img src="${picPath}" alt="Profile" class="profile-pic" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="profile-placeholder" style="display:none;">👤</div>`;
-            } else {
-                profilePicHtml = `<div class="profile-placeholder">👤</div>`;
-            }
-            
-            document.getElementById('profileHeader').innerHTML = `
-                <div class="profile-content">
-                    ${profilePicHtml}
-                    <div class="profile-info">
-                        <h2>${profile.full_name || 'N/A'}</h2>
-                        <p><strong>WAPL ID:</strong> ${profile.wapl_id || 'N/A'}</p>
-                        <p><strong>Email:</strong> ${profile.email || 'N/A'}</p>
-                        <p><strong>Domain:</strong> ${profile.domain_name || 'N/A'}</p>
-                    </div>
-                </div>
-            `;
-        }
+                // Stats
+                setBinder('statId', p.wapl_id);
+                setBinder('statStatus', p.account_status);
+                setBinder('statDomain', p.domain_name);
+                setBinder('statPhone', p.phone);
 
-        function updateStats(profile) {
-            document.getElementById('statWaplId').textContent = profile.wapl_id || 'N/A';
-            document.getElementById('statStatus').textContent = formatAccountStatus(profile.account_status);
-            document.getElementById('statDomain').textContent = profile.domain_name || 'N/A';
-            document.getElementById('statPhone').textContent = profile.phone || 'N/A';
-        }
+                // Info
+                setBinder('infoName', p.full_name);
+                setBinder('infoEmail', p.email);
+                setBinder('infoPhone', p.phone);
+                setBinder('infoAddress', p.address);
 
-        function formatAccountStatus(status) {
-            const map = { pending: 'Pending', active: 'Active', suspended: 'Suspended', revoked: 'Revoked' };
-            return map[status] || 'Unknown';
-        }
+                // HR
+                if (p.assigned_hr) {
+                    document.getElementById('hrSection').style.display = 'block';
+                    setBinder('hrName', p.assigned_hr.full_name);
+                    setBinder('hrCompany', p.assigned_hr.company_name);
+                }
 
-        function renderPersonalInfo(profile) {
-            let recruitmentHTML = '';
-            if (profile.assigned_hr && profile.recruitment_status) {
-                const statusClass = getStatusClass(profile.recruitment_status.status);
-                const statusText = formatStatus(profile.recruitment_status.status);
-                
-                recruitmentHTML = `
-                    <p style="margin-top: 15px; padding: 15px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                        <strong>Recruitment Status:</strong> 
-                        <span class="status-badge-tiny ${statusClass}">${statusText}</span><br>
-                        ${profile.recruitment_status.notes ? `<strong>HR Notes:</strong> ${profile.recruitment_status.notes}<br>` : ''}
-                        <span style="font-size: 12px; color: #666;">Updated: ${new Date(profile.recruitment_status.updated_at).toLocaleDateString()}</span>
-                    </p>
-                `;
-            }
-            
-            document.getElementById('personalInfo').innerHTML = `
-                <p><strong>Full Name:</strong> ${profile.full_name || 'N/A'}</p>
-                <p><strong>Phone:</strong> ${profile.phone || 'N/A'}</p>
-                <p><strong>Address:</strong> ${profile.address || 'N/A'}</p>
-                <p><strong>Domain:</strong> ${profile.domain_name || 'N/A'}</p>
-                ${profile.assigned_hr ? `
-                    <p style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
-                        <strong>Assigned HR:</strong> ${profile.assigned_hr.full_name || 'N/A'}<br>
-                        <strong>Company:</strong> ${profile.assigned_hr.company_name || 'N/A'}<br>
-                        <strong>HR Phone:</strong> ${profile.assigned_hr.phone || 'N/A'}
-                    </p>
-                ` : '<p style="margin-top: 10px; color: #666;"><strong>Assigned HR:</strong> Not assigned yet</p>'}
-                ${recruitmentHTML}
-            `;
-        }
+                // Resume
+                const resumeActions = document.getElementById('resumeActions');
+                // Remove view and download resume buttons
+                resumeActions.innerHTML = '';
+                setBinder('resumeStatus', p.resume ? 'Document available' : 'Not uploaded');
 
-        function renderResume(profile) {
-            if (profile.resume) {
-                document.getElementById('resumeSection').innerHTML = `
-                    <p>✅ Resume uploaded successfully</p>
-                    <div style="margin-top: 12px;">
-                        <a href="/${profile.resume}" target="_blank" class="btn btn-primary">📥 Download Resume</a>
-                    </div>
-                `;
-            } else {
-                document.getElementById('resumeSection').innerHTML = `
-                    <p>No resume uploaded yet</p>
-                    <div style="margin-top: 12px;">
-                        <a href="/student/profile" class="btn btn-secondary">📤 Upload Resume</a>
-                    </div>
-                `;
+                // Skills
+                if (p.skills && Array.isArray(p.skills) && p.skills.length > 0) {
+                    const skillContainer = document.getElementById('skillsList');
+                    document.getElementById('skillsCard').style.display = 'block';
+                    skillContainer.innerHTML = p.skills.map(s =>
+                        `<span style="background:rgba(255,255,255,0.5); padding:4px 10px; border-radius:6px; font-size:0.8rem; border:1px solid rgba(0,0,0,0.1);">${s.trim()}</span>`
+                    ).join('');
+                }
+
+            } catch (e) {
+                console.error(e);
             }
         }
 
         async function loadCertificate() {
             try {
-                const response = await fetch('/api/student/certificate');
-                const certificate = await response.json();
-                
-                if (response.ok) {
-                    const issueDate = new Date(certificate.issue_date).toLocaleDateString();
-                    const expiryDate = new Date(certificate.expiry_date).toLocaleDateString();
-                    const isExpired = new Date(certificate.expiry_date) < new Date();
-                    
-                    document.getElementById('certificateSection').innerHTML = `
-                        <p><strong>Certificate ID:</strong> ${certificate.certificate_unique_id}</p>
-                        <p><strong>Issue Date:</strong> ${issueDate}</p>
-                        <p><strong>Expiry Date:</strong> ${expiryDate}</p>
-                        <p><strong>Status:</strong> <span class="status-badge-tiny ${isExpired ? 'status-expired' : 'status-active'}">${isExpired ? 'Expired' : 'Active'}</span></p>
-                        <div style="margin-top: 12px;">
-                            <a href="/student/certificate" class="btn btn-primary">👁️ View Certificate</a>
-                            ${!isExpired ? '<a href="/api/student/certificate/download" class="btn btn-secondary">📥 Download PDF</a>' : ''}
-                        </div>
-                    `;
+                const res = await fetch('/api/student/certificate');
+                if (res.ok) {
+                    state.certificate = await res.json();
+                    setBinder('certStatus', 'Active • ' + state.certificate.certificate_unique_id);
                 } else {
-                    document.getElementById('certificateSection').innerHTML = '<p>No active certificate found</p>';
+                    setBinder('certStatus', 'No active certificate');
                 }
-            } catch (error) {
-                document.getElementById('certificateSection').innerHTML = '<p>Error loading certificate</p>';
-            }
+            } catch (e) { console.error(e); }
         }
 
-        function renderEducation(profile) {
-            if (profile.education_details && profile.education_details.trim()) {
-                document.getElementById('educationCard').style.display = 'block';
-                document.getElementById('educationSection').innerHTML = `<p>${profile.education_details}</p>`;
-            }
-        }
+        // Init
+        document.addEventListener('DOMContentLoaded', async () => {
+            await Promise.all([loadProfile(), loadCertificate()]);
+            document.getElementById('loading').style.opacity = '0';
+            setTimeout(() => document.getElementById('loading').remove(), 300);
+        });
 
-        function renderSkills(profile) {
-            if (profile.skills && profile.skills.trim()) {
-                document.getElementById('skillsCard').style.display = 'block';
-                const skills = profile.skills.split(',').map(s => s.trim()).filter(s => s);
-                document.getElementById('skillsSection').innerHTML = `
-                    <div class="skills-list">
-                        ${skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('')}
-                    </div>
-                `;
-            }
-        }
-
-        function renderProjects(profile) {
-            if (profile.projects && profile.projects.trim()) {
-                document.getElementById('projectsCard').style.display = 'block';
-                document.getElementById('projectsSection').innerHTML = `<p>${profile.projects}</p>`;
-            }
-        }
-
-        function formatStatus(status) {
-            const map = {
-                'viewed': 'Viewed',
-                'shortlisted': 'Shortlisted',
-                'interview_scheduled': 'Interview Scheduled',
-                'selected': 'Selected',
-                'rejected': 'Rejected'
-            };
-            return map[status] || status;
-        }
-
-        function getStatusClass(status) {
-            const map = {
-                'viewed': 'status-viewed',
-                'shortlisted': 'status-shortlisted',
-                'interview_scheduled': 'status-interview',
-                'selected': 'status-selected',
-                'rejected': 'status-rejected'
-            };
-            return map[status] || '';
-        }
-
-        async function logout() {
-            try {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = '/login';
-            } catch (error) {
-                window.location.href = '/login';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', loadDashboard);
     </script>
 </body>
+
 </html>

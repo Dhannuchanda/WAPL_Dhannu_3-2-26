@@ -1,16 +1,20 @@
+
 from flask import Blueprint, request, jsonify, session, send_file, redirect, url_for, render_template
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
-from database import db
+from database import db, get_db_type, get_agg_func, is_postgres
 from utils import (
     generate_wapl_id, generate_certificate_id, generate_qr_code,
     generate_certificate_pdf, send_email_simulation, sanitize_input,
     allowed_file, save_uploaded_file
 )
+from storage import Storage
 import os
 import json
 import random
 import string
+import sqlite3
+import psycopg2
 
 student_bp = Blueprint('student', __name__)
 
@@ -83,61 +87,64 @@ def student_register():
             return jsonify({'error': 'Email already registered'}), 400
         
         # Generate OTP
-        otp = generate_otp()
-        otp_expiry = datetime.now() + timedelta(minutes=10)
-        
-        # Store registration data in session (temporary)
-        session['registration_data'] = {
-            'email': email,
-            'password': password,
-            'full_name': full_name,
-            'phone': phone,
-            'address': address,
-            'domain_ids': domain_ids,
-            'otp': otp,
-            'otp_expiry': otp_expiry.isoformat(),
-            'otp_verified': False
-        }
-        
-        # 🎯 PRINT OTP TO CONSOLE (For Local Development)
-        print("\n" + "="*60)
-        print(f"📧 STUDENT REGISTRATION OTP")
-        print(f"🔐 Email: {email}")
-        print(f"🔢 OTP Code: {otp}")
-        print(f"⏰ Valid until: {otp_expiry.strftime('%I:%M %p')}")
-        print(f"⏱️  Expires in: 10 minutes")
-        print("="*60 + "\n")
-        
-        return jsonify({
-            'message': 'OTP generated successfully. Check your Flask console.',
-            'email': email,
-            'redirect': '/verify-otp'
-        }), 200
-        
-    except Exception as e:
-        print(f"Registration error: {e}")
-        return jsonify({'error': str(e)}), 500
-
-@student_bp.route('/api/student/verify-otp', methods=['POST'])
-def verify_otp():
-    """Verify OTP and complete registration"""
-    try:
-        data = request.get_json()
-        entered_otp = data.get('otp', '').strip()
-        
-        if not entered_otp:
-            return jsonify({'error': 'OTP is required'}), 400
-        
-        # Get registration data from session
-        reg_data = session.get('registration_data')
-        
-        if not reg_data:
-            return jsonify({'error': 'Registration session expired. Please register again.'}), 400
-        
-        # Check if OTP is expired
-        otp_expiry = datetime.fromisoformat(reg_data['otp_expiry'])
-        if datetime.now() > otp_expiry:
-            session.pop('registration_data', None)
+        try:
+            data = request.get_json()
+            # Extract and validate data
+            email = sanitize_input(data.get('email', '')).strip().lower()
+            password = data.get('password', '')
+            full_name = sanitize_input(data.get('fullName', '')).strip()
+            phone = sanitize_input(data.get('phone', '')).strip()
+            address = sanitize_input(data.get('address', '')).strip()
+            domain_ids = data.get('domainIds', [])  # Array of domain IDs
+            # Validation
+            if not all([email, password, full_name, phone]):
+                return jsonify({'error': 'Email, password, full name, and phone are required'}), 400
+            if len(password) < 6:
+                return jsonify({'error': 'Password must be at least 6 characters'}), 400
+            if not domain_ids or len(domain_ids) == 0:
+                return jsonify({'error': 'Please select at least one domain'}), 400
+            # Check if email already exists
+            existing = db.execute_query(
+                'SELECT id FROM users WHERE email = ?',
+                (email,),
+                fetch_one=True
+            )
+            if existing:
+                return jsonify({'error': 'Email already registered'}), 400
+            # Generate OTP
+            otp = generate_otp()
+            otp_expiry = datetime.now() + timedelta(minutes=10)
+            # Store registration data in session (temporary)
+            session['registration_data'] = {
+                'email': email,
+                'password': password,
+                'full_name': full_name,
+                'phone': phone,
+                'address': address,
+                'domain_ids': domain_ids,
+                'otp': otp,
+                'otp_expiry': otp_expiry.isoformat(),
+                'otp_verified': False
+            }
+            # 🎯 PRINT OTP TO CONSOLE (For Local Development)
+            print("\n" + "="*60)
+            print(f"📧 STUDENT REGISTRATION OTP")
+            print(f"🔐 Email: {email}")
+            print(f"🔢 OTP Code: {otp}")
+            print(f"⏰ Valid until: {otp_expiry.strftime('%I:%M %p')}")
+            print(f"⏱️  Expires in: 10 minutes")
+            print("="*60 + "\n")
+            return jsonify({
+                'message': 'OTP generated successfully. Check your Flask console.',
+                'email': email,
+                'redirect': '/verify-otp'
+            }), 200
+        except (sqlite3.IntegrityError, psycopg2.IntegrityError) as e:
+            print(f"Registration IntegrityError: {e}")
+            return jsonify({'error': 'A database conflict occurred during registration. Please check your input or try again.'}), 409
+        except Exception as e:
+            print(f"Registration error: {e}")
+            return jsonify({'error': str(e)}), 500
             return jsonify({'error': 'OTP has expired. Please register again.'}), 400
         
         # Verify OTP
@@ -148,63 +155,83 @@ def verify_otp():
         from werkzeug.security import generate_password_hash
         
         password_hash = generate_password_hash(reg_data['password'])
-        
-        # Create user
-        user_id = db.execute_query(
-            "INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, 'student', 1)",
-            (reg_data['email'], password_hash)
-        )
-        
-        # Generate WAPL ID
-        wapl_id = generate_wapl_id()
-        
-        # Create student profile with PENDING status
-        student_id = db.execute_query(
-            """INSERT INTO students 
-               (user_id, wapl_id, full_name, phone, address, account_status) 
-               VALUES (?, ?, ?, ?, ?, 'pending')""",
-            (user_id, wapl_id, reg_data['full_name'], reg_data['phone'], reg_data['address'])
-        )
-        
-        # Assign domains (multiple domains)
-        for domain_id in reg_data['domain_ids']:
-            db.execute_query(
-                "INSERT INTO student_domains (student_id, domain_id) VALUES (?, ?)",
-                (student_id, domain_id)
-            )
-        
-        # Clear registration data from session
-        session.pop('registration_data', None)
-        
-        # Print success message to console
-        print("\n" + "="*60)
-        print(f"✅ REGISTRATION SUCCESSFUL!")
-        print(f"📧 Email: {reg_data['email']}")
-        print(f"🎓 WAPL ID: {wapl_id}")
-        print(f"📋 Status: PENDING (Awaiting admin approval)")
-        print("="*60 + "\n")
-        
-        return jsonify({
-            'message': 'Registration successful! Your account is pending admin approval.',
-            'wapl_id': wapl_id,
-            'status': 'pending',
-            'redirect': '/login'
-        }), 201
-        
-    except Exception as e:
-        print(f"OTP verification error: {e}")
-        return jsonify({'error': str(e)}), 500
-
-@student_bp.route('/api/student/resend-otp', methods=['POST'])
-def resend_otp():
-    """Resend OTP"""
-    try:
-        # Get registration data from session
-        reg_data = session.get('registration_data')
-        
-        if not reg_data:
-            return jsonify({'error': 'Registration session expired. Please register again.'}), 400
-        
+        try:
+            data = request.get_json()
+            entered_otp = data.get('otp', '').strip()
+            if not entered_otp:
+                return jsonify({'error': 'OTP is required'}), 400
+            # Get registration data from session
+            reg_data = session.get('registration_data')
+            if not reg_data:
+                return jsonify({'error': 'Registration session expired. Please register again.'}), 400
+            # Check if OTP is expired
+            otp_expiry = datetime.fromisoformat(reg_data['otp_expiry'])
+            if datetime.now() > otp_expiry:
+                session.pop('registration_data', None)
+                return jsonify({'error': 'OTP has expired. Please register again.'}), 400
+            # Verify OTP
+            if entered_otp != reg_data['otp']:
+                return jsonify({'error': 'Invalid OTP. Please try again.'}), 400
+            # OTP is correct - Create user account
+            from werkzeug.security import generate_password_hash
+            password_hash = generate_password_hash(reg_data['password'])
+            try:
+                # Create user
+                insert_user_sql = "INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, 'student', 1)"
+                if get_db_type() == 'postgres':
+                    insert_user_sql = "INSERT INTO users (email, password_hash, role, is_verified) VALUES (?, ?, 'student', TRUE) RETURNING id"
+                    user_id = db.execute_query(insert_user_sql, (reg_data['email'], password_hash), fetch_one=True)['id']
+                else:
+                    user_id = db.execute_query(insert_user_sql, (reg_data['email'], password_hash))
+                # Generate WAPL ID
+                wapl_id = generate_wapl_id()
+                # Create student profile with PENDING status
+                insert_student_sql = """INSERT INTO students 
+                       (user_id, wapl_id, full_name, phone, address, account_status) 
+                       VALUES (?, ?, ?, ?, ?, 'pending')"""
+                if get_db_type() == 'postgres':
+                    insert_student_sql += " RETURNING id"
+                    student_id = db.execute_query(
+                        insert_student_sql,
+                        (user_id, wapl_id, reg_data['full_name'], reg_data['phone'], reg_data['address']),
+                        fetch_one=True
+                    )['id']
+                else:
+                    student_id = db.execute_query(
+                        insert_student_sql,
+                        (user_id, wapl_id, reg_data['full_name'], reg_data['phone'], reg_data['address'])
+                    )
+                # Assign domains (multiple domains)
+                for domain_id in reg_data['domain_ids']:
+                    try:
+                        db.execute_query(
+                            "INSERT INTO student_domains (student_id, domain_id) VALUES (?, ?)",
+                            (student_id, domain_id)
+                        )
+                    except (sqlite3.IntegrityError, psycopg2.IntegrityError) as e:
+                        print(f"Domain assignment IntegrityError: {e}")
+                        # Continue assigning other domains, but skip duplicates
+                # Clear registration data from session
+                session.pop('registration_data', None)
+                # Print success message to console
+                print("\n" + "="*60)
+                print(f"✅ REGISTRATION SUCCESSFUL!")
+                print(f"📧 Email: {reg_data['email']}")
+                print(f"🎓 WAPL ID: {wapl_id}")
+                print(f"📋 Status: PENDING (Awaiting admin approval)")
+                print("="*60 + "\n")
+                return jsonify({
+                    'message': 'Registration successful! Your account is pending admin approval.',
+                    'wapl_id': wapl_id,
+                    'status': 'pending',
+                    'redirect': '/login'
+                }), 201
+            except (sqlite3.IntegrityError, psycopg2.IntegrityError) as e:
+                print(f"OTP verification IntegrityError: {e}")
+                return jsonify({'error': 'A database conflict occurred during registration. Please check your input or try again.'}), 409
+        except Exception as e:
+            print(f"OTP verification error: {e}")
+            return jsonify({'error': str(e)}), 500
         # Generate new OTP
         otp = generate_otp()
         otp_expiry = datetime.now() + timedelta(minutes=10)
@@ -410,7 +437,8 @@ def upload_photo():
             old_pic_path = os.path.join('uploads/profile_pics', student['profile_pic'])
             if os.path.exists(old_pic_path):
                 try:
-                    os.remove(old_pic_path)
+                    Storage.delete_file(student['profile_pic'])
+                    print(f"✅ Deleted profile picture: {student['profile_pic']}")
                 except Exception as e:
                     print(f"Error deleting old profile pic: {e}")
         
@@ -452,10 +480,8 @@ def delete_photo():
         # Delete the file from filesystem if it exists
         if student['profile_pic']:
             try:
-                pic_path = os.path.join('uploads/profile_pics', student['profile_pic'])
-                if os.path.exists(pic_path):
-                    os.remove(pic_path)
-                    print(f"✅ Deleted profile picture: {student['profile_pic']}")
+                Storage.delete_file(student['profile_pic'])
+                print(f"✅ Deleted profile picture: {student['profile_pic']}")
             except Exception as e:
                 print(f"❌ Error deleting file: {e}")
         
@@ -508,12 +534,10 @@ def upload_resume():
         
         # Delete old resume if exists
         if student['resume']:
-            old_resume_path = os.path.join('uploads/resumes', student['resume'])
-            if os.path.exists(old_resume_path):
-                try:
-                    os.remove(old_resume_path)
-                except Exception as e:
-                    print(f"Error deleting old resume: {e}")
+            try:
+                Storage.delete_file(student['resume'])
+            except Exception as e:
+                print(f"Error deleting old resume: {e}")
         
         # Save new file
         filepath = save_uploaded_file(
@@ -532,6 +556,9 @@ def upload_resume():
         return jsonify({'message': 'Resume uploaded successfully', 'path': filepath}), 200
         
     except Exception as e:
+        print(f"UPLOAD ERROR: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @student_bp.route('/api/student/delete-resume', methods=['DELETE'])
@@ -553,10 +580,8 @@ def delete_resume():
         # Delete the file from filesystem if it exists
         if student['resume']:
             try:
-                resume_path = os.path.join('uploads/resumes', student['resume'])
-                if os.path.exists(resume_path):
-                    os.remove(resume_path)
-                    print(f"✅ Deleted resume: {student['resume']}")
+                Storage.delete_file(student['resume'])
+                print(f"✅ Deleted resume: {student['resume']}")
             except Exception as e:
                 print(f"❌ Error deleting file: {e}")
         
@@ -578,6 +603,7 @@ def delete_resume():
 def get_certificate():
     try:
         user_id = session['user_id']
+        is_active_val = "TRUE" if is_postgres() else "1"
         
         # Get student
         student = db.execute_query(
@@ -591,8 +617,8 @@ def get_certificate():
         
         # Get certificate
         certificate = db.execute_query(
-            '''SELECT * FROM certificates 
-               WHERE student_id = ? AND is_active = 1
+            f'''SELECT * FROM certificates 
+               WHERE student_id = ? AND is_active = {is_active_val}
                ORDER BY issue_date DESC LIMIT 1''',
             (student['id'],),
             fetch_one=True
@@ -604,14 +630,30 @@ def get_certificate():
         cert_data = dict(certificate)
         
         # Check if expired
-        if cert_data['expiry_date']:
-            cert_data['is_valid'] = datetime.fromisoformat(cert_data['expiry_date']) > datetime.now()
+        if cert_data.get('expiry_date'):
+            try:
+                # Handle different datetime formats
+                expiry = cert_data['expiry_date']
+                if isinstance(expiry, str):
+                    expiry = datetime.fromisoformat(expiry.replace('Z', '+00:00'))
+                cert_data['is_valid'] = expiry > datetime.now(expiry.tzinfo) if expiry.tzinfo else expiry > datetime.now()
+            except Exception as date_err:
+                print(f"Date parsing error: {date_err}")
+                cert_data['is_valid'] = True
         else:
             cert_data['is_valid'] = True
+        
+        # Convert datetime objects to strings for JSON
+        for key in ['issue_date', 'expiry_date', 'created_at']:
+            if key in cert_data and cert_data[key] and not isinstance(cert_data[key], str):
+                cert_data[key] = cert_data[key].isoformat()
         
         return jsonify(cert_data), 200
         
     except Exception as e:
+        print(f"Error getting certificate: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @student_bp.route('/api/student/certificate/download', methods=['GET'])
@@ -619,6 +661,7 @@ def get_certificate():
 def download_certificate():
     try:
         user_id = session['user_id']
+        is_active_val = "TRUE" if is_postgres() else "1"
         
         # Get student
         student = db.execute_query(
@@ -632,8 +675,8 @@ def download_certificate():
         
         # Get certificate
         certificate = db.execute_query(
-            '''SELECT * FROM certificates 
-               WHERE student_id = ? AND is_active = 1
+            f'''SELECT * FROM certificates 
+               WHERE student_id = ? AND is_active = {is_active_val}
                ORDER BY issue_date DESC LIMIT 1''',
             (student['id'],),
             fetch_one=True
@@ -644,7 +687,16 @@ def download_certificate():
         
         pdf_path = certificate['pdf_path']
         
-        if not pdf_path or not os.path.exists(pdf_path):
+        
+        if not pdf_path:
+             return jsonify({'error': 'Certificate file not found'}), 404
+             
+        # If it's a URL (Supabase), redirect
+        if pdf_path.startswith('http'):
+            return redirect(pdf_path)
+            
+        # If local path, check existence
+        if not os.path.exists(pdf_path):
             return jsonify({'error': 'Certificate file not found'}), 404
         
         return send_file(
@@ -662,8 +714,9 @@ def download_certificate():
 def get_active_domains():
     """Get all active domains for registration"""
     try:
+        is_active_val = "TRUE" if is_postgres() else "1"
         domains = db.execute_query(
-            'SELECT id, domain_name FROM domains WHERE is_active = 1 ORDER BY domain_name',
+            f'SELECT id, domain_name FROM domains WHERE is_active = {is_active_val} ORDER BY domain_name',
             fetch_all=True
         )
         

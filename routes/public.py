@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, render_template
 from datetime import datetime
-from database import db
+from database import db, is_postgres
 
 public_bp = Blueprint('public', __name__)
 
@@ -24,8 +24,9 @@ def verify_certificate(cert_id):
                                  message='Certificate not found')
         
         cert_dict = dict(certificate)
-        is_expired = datetime.fromisoformat(cert_dict['expiry_date']) < datetime.now()
-        is_active = cert_dict['is_active'] == 1
+        is_expired = datetime.fromisoformat(str(cert_dict['expiry_date'])) < datetime.now()
+        # Handle both boolean (PostgreSQL) and integer (SQLite) for is_active
+        is_active = cert_dict['is_active'] in (True, 1)
         
         if not is_active:
             return render_template('verify_certificate.html',
@@ -64,8 +65,13 @@ def verify_certificate_api(cert_id):
             return jsonify({'valid': False, 'message': 'Certificate not found'}), 404
         
         cert_dict = dict(certificate)
-        is_expired = datetime.fromisoformat(cert_dict['expiry_date']) < datetime.now()
-        is_active = cert_dict['is_active'] == 1
+        # Handle datetime parsing for both PostgreSQL and SQLite
+        expiry_date = cert_dict['expiry_date']
+        if isinstance(expiry_date, str):
+            expiry_date = datetime.fromisoformat(expiry_date.replace('Z', '+00:00'))
+        is_expired = expiry_date < datetime.now() if expiry_date else False
+        # Handle both boolean (PostgreSQL) and integer (SQLite) for is_active
+        is_active = cert_dict['is_active'] in (True, 1)
         
         if not is_active:
             return jsonify({'valid': False, 'message': 'Certificate has been revoked'}), 400

@@ -908,6 +908,9 @@
                                         `<button onclick="suspendStudent(${student.id})" class="menu-item warning">⏸ Suspend</button>` : 
                                         `<button onclick="activateStudent(${student.id})" class="menu-item warning">▶ Activate</button>`
                                     }
+                                    ${student.account_status === 'active' ? 
+                                        `<button onclick="issueCertificate(${student.id}, '${student.full_name}')" class="menu-item success">🎓 Issue Certificate</button>` : ''
+                                    }
                                     <button onclick="deleteStudent(${student.id})" class="menu-item danger">🗑 Delete</button>
                                 </div>
                             </div>
@@ -971,6 +974,9 @@
                         </button>
                         ${student.account_status === 'pending' ? 
                             `<button onclick="approveStudent(${student.id})" class="btn-view" style="background: #28a745; width: 100%;">✓ Approve</button>` : ''
+                        }
+                        ${student.account_status === 'active' ? 
+                            `<button onclick="issueCertificate(${student.id}, '${student.full_name}')" class="btn-view" style="background: #667eea; width: 100%;">🎓 Issue Certificate</button>` : ''
                         }
                     </div>
                 </div>
@@ -1054,6 +1060,27 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
+            }
+        }
+
+        async function issueCertificate(studentId, studentName) {
+            if (!confirm(`🎓 Issue certificate for ${studentName}?`)) return;
+            try {
+                const response = await fetch('/api/admin/certificates/issue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ studentIds: [studentId] })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('✅ Certificate issued successfully!');
+                    loadStudents();
+                } else {
+                    alert('❌ ' + (data.error || 'Failed to issue certificate'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('❌ An error occurred while issuing certificate');
             }
         }
 

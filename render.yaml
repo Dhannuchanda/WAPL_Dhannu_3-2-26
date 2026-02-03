@@ -4,13 +4,25 @@ services:
     runtime: python
     runtimeVersion: 3.11.0
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --access-logfile - app:app
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --access-logfile - app:app
     envVars:
       - key: FLASK_ENV
         value: production
       - key: FLASK_DEBUG
-        value: false
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false  # Set this manually in Render dashboard
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: uploads
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
     healthCheckPath: /
-    routes:
-      - path: /
-        matchType: prefix
+    autoDeploy: true

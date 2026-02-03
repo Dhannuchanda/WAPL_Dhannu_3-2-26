@@ -81,7 +81,27 @@ A comprehensive web application for managing student portfolios, HR assignments,
 
 7. **Access the application**
    - Main site: http://localhost:5000
-   - Admin panel: http://localhost:5000/secure-admin-panel-wapl/login
+   - Admin panel: http://localhost:5000/secure-admin-panel/wapl/login
+
+## Deployment
+
+### Critical Note on Data Persistence
+This application currently uses **SQLite** (`wapl.db`) and **Local File Storage** (`/uploads`).
+- **VPS / VM (Recommended)**: If you deploy to a Virtual Private Server (DigitalOcean, AWS EC2, Linode), everything will work perfectly, and data will be saved.
+- **PaaS (Render / Vercel / Heroku)**: These platforms have **ephemeral file systems**. This means `wapl.db` and uploaded files will be **deleted** every time the app restarts or you deploy new code.
+    - To use these platforms properly, you would need to migrate to PostgreSQL and an object store like AWS S3.
+    - **Current Behavior on PaaS**: The app will run, but user data will reset frequently.
+
+### Prerequisites
+- `requirements.txt` included.
+- `Procfile` included (for Gunicorn).
+- `runtime.txt` included (Python 3.9.18).
+
+### Environment Variables for Production
+Set these in your hosting dashboard:
+- `SECRET_KEY`: (Random string)
+- `GMAIL_EMAIL`: (Your Gmail)
+- `GMAIL_PASSWORD`: (App Password)
 
 ## Email Configuration
 
