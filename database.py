@@ -9,6 +9,7 @@ import secrets
 import string
 import urllib.parse
 import logging
+import socket
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -32,6 +33,29 @@ def is_postgres():
     """Check if using PostgreSQL"""
     return get_db_type() == 'postgres'
 
+def resolve_supabase_ipv4(db_url):
+    """
+    Fix Supabase IPv6 issue on Railway by resolving hostname to IPv4.
+    Railway doesn't support IPv6 outbound connections to Supabase.
+    """
+    try:
+        # Parse the URL to get the hostname
+        parsed = urllib.parse.urlparse(db_url)
+        hostname = parsed.hostname
+        
+        if hostname and 'supabase.co' in hostname:
+            # Force IPv4 resolution
+            ipv4_addr = socket.getaddrinfo(hostname, None, socket.AF_INET)[0][4][0]
+            # Replace hostname with IPv4 in the URL
+            new_netloc = parsed.netloc.replace(hostname, ipv4_addr)
+            new_url = parsed._replace(netloc=new_netloc).geturl()
+            logger.info(f"🔧 Resolved Supabase to IPv4: {ipv4_addr}")
+            return new_url
+    except Exception as e:
+        logger.warning(f"⚠️ Could not resolve IPv4: {e}")
+    
+    return db_url
+
 @contextmanager
 def get_db_connection():
     """Get database connection (PostgreSQL or SQLite)"""
@@ -40,13 +64,16 @@ def get_db_connection():
     
     try:
         if db_url:
-            # Fix: Force port 5432 (Direct) instead of 6543 (Pooler) for Supabase on Railway
-            if 'supabase.co' in db_url and ':6543' in db_url:
-                print("🔧 Switching Supabase connection to Direct Port 5432 (stability fix)")
-                db_url = db_url.replace(':6543', ':5432')
-
-            # PostgreSQL Connection
-            conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
+            # Fix Supabase IPv6 issue - resolve to IPv4
+            if 'supabase.co' in db_url:
+                db_url = resolve_supabase_ipv4(db_url)
+            
+            # PostgreSQL Connection with timeout
+            conn = psycopg2.connect(
+                db_url, 
+                cursor_factory=RealDictCursor,
+                connect_timeout=10
+            )
             yield conn
         else:
             # SQLite Connection
