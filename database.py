@@ -40,14 +40,13 @@ def get_db_connection():
     
     try:
         if db_url:
+            # Fix: Force port 5432 (Direct) instead of 6543 (Pooler) for Supabase on Railway
+            if 'supabase.co' in db_url and ':6543' in db_url:
+                print("🔧 Switching Supabase connection to Direct Port 5432 (stability fix)")
+                db_url = db_url.replace(':6543', ':5432')
+
             # PostgreSQL Connection
-            # Force IPv4 by adding connect_timeout and options
-            conn = psycopg2.connect(
-                db_url, 
-                cursor_factory=RealDictCursor,
-                connect_timeout=10,
-                options='-c statement_timeout=30000'
-            )
+            conn = psycopg2.connect(db_url, cursor_factory=RealDictCursor)
             yield conn
         else:
             # SQLite Connection
