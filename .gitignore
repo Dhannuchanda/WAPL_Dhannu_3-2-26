@@ -1,4 +1,3 @@
-@"
 # Python
 __pycache__/
 *.py[cod]
@@ -10,17 +9,15 @@ __pycache__/
 
 # Virtual Environments
 venv/
-venv_clean/
-venv_deploy/
-venv_test/
 env/
 ENV/
+.venv/
 
 # Flask
 flask_session/
 instance/
 
-# Database
+# Database (local only)
 *.db
 *.sqlite
 *.sqlite3

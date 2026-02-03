@@ -1,248 +1,158 @@
-# WAPL - Student Portfolio and Placement Management System
+# 🎓 WAPL ID Management System
 
-A comprehensive web application for managing student portfolios, HR assignments, and certificate generation.
+A comprehensive web application for managing student IDs, certificates, and HR recruitment workflows.
 
-## Features
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![Flask](https://img.shields.io/badge/Flask-3.0-green)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-blue)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-### Student Features
-- User registration with OTP verification
-- Profile management (personal details, education, skills, projects)
-- Profile picture and resume upload
-- Certificate generation with QR code
-- View assigned HR details
+## ✨ Features
 
-### HR Features
-- View assigned students only
-- Search/filter students by domain and skills
-- View student profiles (read-only)
-- Download student resumes
-- View active certificates
+### 👨‍🎓 Student Portal
+- Self-registration with OTP email verification
+- Profile management (photo, resume, skills)
+- View and download certificates
+- Track application status
 
-### Admin Features
-- Domain management (add, edit, delete, activate/deactivate)
-- HR account management
-- Student management
-- Student-HR assignment (bulk and individual)
-- Certificate management (view all certificates including expired)
+### 👨‍💼 HR Portal  
+- View assigned students
+- Track recruitment progress
+- Download student resumes & certificates
+- Manage student evaluations
 
-## Technology Stack
+### 🔐 Admin Panel
+- Complete student management (CRUD)
+- HR management and student assignment
+- Domain/department management
+- Certificate generation with QR codes
+- Dashboard with analytics
 
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript
-- **Backend**: Python (Flask)
-- **Database**: SQLite
-- **Email**: Gmail SMTP (for OTP delivery)
-- **Libraries**: 
-  - python-qrcode (QR code generation)
-  - ReportLab (PDF generation)
-  - python-dotenv (environment variables)
-  - bcrypt (password hashing)
+### 🏆 Certificate System
+- Auto-generated PDF certificates
+- QR code verification
+- Public verification page
+- Certificate regeneration
 
-## Installation
+## 🛠️ Tech Stack
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd new
-   ```
+- **Backend**: Flask 3.0, Python 3.11
+- **Database**: PostgreSQL (Supabase)
+- **Storage**: Supabase Storage
+- **Email**: Gmail SMTP (OTP)
+- **PDF Generation**: ReportLab
+- **QR Codes**: qrcode + Pillow
 
-2. **Create virtual environment**
-   ```bash
-   python -m venv venv
-   # On Windows
-   venv\Scripts\activate
-   # On Linux/Mac
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Set up Gmail for OTP emails** ⚠️ IMPORTANT
-   - Follow [GMAIL_SETUP_GUIDE.md](GMAIL_SETUP_GUIDE.md) for complete instructions
-   - Quick setup:
-     1. Enable 2-Factor Authentication on `techinfo506168@gmail.com`
-     2. Generate a Gmail App Password
-     3. Create `.env` file with your Gmail credentials
-     ```env
-     GMAIL_EMAIL=techinfo506168@gmail.com
-     GMAIL_PASSWORD=your_16_char_app_password
-     ```
-
-5. **Set up other environment variables**
-   - Copy `.env.example` to `.env`
-   - Update the values in `.env` file
-
-6. **Run the application**
-   ```bash
-   python app.py
-   ```
-
-7. **Access the application**
-   - Main site: http://localhost:5000
-   - Admin panel: http://localhost:5000/secure-admin-panel/wapl/login
-
-## Deployment
-
-### Critical Note on Data Persistence
-This application currently uses **SQLite** (`wapl.db`) and **Local File Storage** (`/uploads`).
-- **VPS / VM (Recommended)**: If you deploy to a Virtual Private Server (DigitalOcean, AWS EC2, Linode), everything will work perfectly, and data will be saved.
-- **PaaS (Render / Vercel / Heroku)**: These platforms have **ephemeral file systems**. This means `wapl.db` and uploaded files will be **deleted** every time the app restarts or you deploy new code.
-    - To use these platforms properly, you would need to migrate to PostgreSQL and an object store like AWS S3.
-    - **Current Behavior on PaaS**: The app will run, but user data will reset frequently.
+## 🚀 Quick Start
 
 ### Prerequisites
-- `requirements.txt` included.
-- `Procfile` included (for Gunicorn).
-- `runtime.txt` included (Python 3.9.18).
+- Python 3.11+
+- Supabase account (free tier works)
+- Gmail account with App Password
 
-### Environment Variables for Production
-Set these in your hosting dashboard:
-- `SECRET_KEY`: (Random string)
-- `GMAIL_EMAIL`: (Your Gmail)
-- `GMAIL_PASSWORD`: (App Password)
+### Installation
 
-## Email Configuration
+```bash
+# Clone the repository
+git clone https://github.com/Dhannuchanda/WAPL_Dhannu_3-2-26.git
+cd WAPL_Dhannu_3-2-26
 
-This application sends OTP verification emails via Gmail:
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-- **Email Account**: techinfo506168@gmail.com
-- **Purpose**: User registration OTP, password reset OTP, confirmations
-- **Setup Guide**: See [GMAIL_SETUP_GUIDE.md](GMAIL_SETUP_GUIDE.md)
+# Install dependencies
+pip install -r requirements.txt
 
-### What Emails Are Sent?
+# Configure environment
+cp .env.example .env
+# Edit .env with your credentials
 
-1. **Registration OTP** - When user registers
-2. **Registration Confirmation** - After OTP verification
-3. **Password Reset OTP** - When user requests password reset
+# Run the application
+python app.py
+```
 
-All emails use professional HTML templates with branding.
+### Environment Variables
 
-## Default Admin Credentials
+Create a `.env` file with:
 
-- **Email**: admin@wapl.com
-- **Password**: admin123
+```env
+DATABASE_URL=postgresql://user:password@host:5432/database
+SECRET_KEY=your-secret-key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your-anon-key
+GMAIL_USER=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-app-password
+```
 
-
-## Project Structure
+## 📁 Project Structure
 
 ```
-new/
-├── app.py                 # Main Flask application
-├── database.py           # Database initialization and helpers
-├── utils.py              # Utility functions
-├── requirements.txt      # Python dependencies
-├── .env.example          # Environment variables template
+├── app.py              # Application entry point
+├── config.py           # Configuration settings
+├── database.py         # Database connection & models
+├── storage.py          # File storage (Supabase/Local)
+├── utils.py            # Utility functions
+├── wsgi.py             # WSGI entry point
 ├── routes/
-│   ├── auth.py          # Authentication routes
-│   ├── student.py       # Student routes
-│   ├── hr.py            # HR routes
-│   ├── admin.py         # Admin routes
-│   └── public.py        # Public routes
-├── templates/
-│   ├── base.html        # Base template
-│   ├── index.html       # Landing page
-│   ├── login.html       # Login page
-│   ├── register.html    # Registration page
-│   ├── student/         # Student templates
-│   ├── hr/              # HR templates
-│   └── admin/           # Admin templates
-├── static/
-│   ├── css/
-│   │   └── style.css    # Main stylesheet
-│   └── js/
-│       └── utils.js     # Utility JavaScript
-└── uploads/             # Uploaded files (created automatically)
-    ├── profile_pics/
-    |── pics/
-    ├── resumes/
-    ├── certificates/
-    └── qr_codes/
+│   ├── admin.py        # Admin API routes
+│   ├── auth.py         # Authentication routes
+│   ├── hr.py           # HR portal routes
+│   ├── public.py       # Public routes
+│   └── student.py      # Student portal routes
+├── templates/          # Jinja2 HTML templates
+├── static/             # CSS, JS, images
+└── uploads/            # User uploads (local dev)
 ```
 
-## API Endpoints
+## 🌐 Deployment
 
-### Authentication
-- `POST /api/auth/register` - Student registration
-- `POST /api/auth/login` - Login (Student/HR)
-- `POST /api/auth/admin/login` - Admin login
-- `POST /api/auth/verify-otp` - Verify OTP
-- `POST /api/auth/resend-otp` - Resend OTP
-- `POST /api/auth/logout` - Logout
-- `POST /api/auth/forgot-password` - Password reset
+### Railway (Recommended)
 
-### Student
-- `GET /api/student/profile` - Get profile
-- `PUT /api/student/profile` - Update profile
-- `POST /api/student/upload-photo` - Upload profile picture
-- `POST /api/student/upload-resume` - Upload resume
-- `GET /api/student/certificate` - Get certificate
-- `GET /api/student/certificate/download` - Download certificate PDF
-- `GET /api/domains/active` - Get active domains
+1. Push to GitHub
+2. Connect repo on [railway.app](https://railway.app)
+3. Add environment variables
+4. Deploy!
 
-### HR
-- `GET /api/hr/students` - Get assigned students
-- `GET /api/hr/student/<id>` - Get student details
-- `GET /api/hr/students/filter` - Filter students
+See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for detailed instructions.
 
-### Admin
-- `POST /api/admin/hr/create` - Create HR
-- `GET /api/admin/hrs` - Get all HRs
-- `PUT /api/admin/hr/<id>` - Update HR
-- `DELETE /api/admin/hr/<id>` - Delete HR
-- `GET /api/admin/students` - Get all students
-- `PUT /api/admin/student/<id>` - Update student
-- `DELETE /api/admin/student/<id>` - Delete student
-- `POST /api/admin/assign-students` - Assign students to HR
-- `PUT /api/admin/reassign-student` - Reassign student
-- `DELETE /api/admin/unassign-student/<id>` - Unassign student
-- `GET /api/admin/unassigned-students` - Get unassigned students
-- `GET /api/admin/hr/<id>/students` - Get HR's students
-- `GET /api/admin/domains` - Get all domains
-- `POST /api/admin/domain` - Create domain
-- `PUT /api/admin/domain/<id>` - Update domain
-- `DELETE /api/admin/domain/<id>` - Delete domain
-- `PATCH /api/admin/domain/<id>/toggle` - Toggle domain status
-- `GET /api/admin/certificates` - Get all certificates
+## 🔑 Default Credentials
 
-### Public
-- `GET /verify-certificate/<cert_id>` - Verify certificate
-- `GET /api/verify-certificate/<cert_id>` - Verify certificate (API)
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@wapl.com | admin123 |
 
-## Security Features
+⚠️ **Change these immediately in production!**
 
-- Password hashing with bcrypt
-- SQL injection prevention (parameterized queries)
-- XSS protection (input sanitization)
-- Session-based authentication
-- Role-based access control (RBAC)
-- File upload validation (type and size)
-- Admin panel hidden URL
-- Session timeout (30 minutes)
+## 📸 Screenshots
 
-## File Upload Limits
+### Admin Dashboard
+- Student management with bulk actions
+- Certificate issuance workflow
+- Real-time statistics
 
-- Profile Picture: Max 5MB (JPG, JPEG, PNG)
-- Resume: Max 10MB (PDF, DOC, DOCX)
+### Student Portal
+- Clean, responsive design
+- Mobile-friendly interface
+- Easy certificate access
 
-## Certificate Generation
+## 🤝 Contributing
 
-Certificates are automatically generated upon successful student registration with:
-- Unique certificate ID (CERT + timestamp + random string)
-- QR code for verification
-- PDF format with student details
-- 1-year validity from issue date
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing`)
+5. Open a Pull Request
 
-## WAPL ID Format
+## 📄 License
 
-WAPL IDs are auto-generated in the format: `WAPL + YEAR + 6-digit sequential number`
-Example: `WAPL2026000001`
+This project is licensed under the MIT License.
 
-## Development Notes
+## 👨‍💻 Author
 
-- Email sending is simulated (console log) - implement actual email service for production
-- Database is SQLite - consider PostgreSQL for production
-- Session storage is filesystem - consider Redis for production
-- Admin panel URL is intentionally hidden from frontend navigation
+**Dhannu Chanda**
+
+---
+
+⭐ Star this repo if you find it helpful!
 
