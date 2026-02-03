@@ -97,8 +97,8 @@ def generate_qr_code(data, output_path):
 def generate_certificate_pdf(student_name, wapl_id, domain_name, issue_date, expiry_date, qr_code_path, output_path, hr_name=None, certificate_text=None):
     """Generate certificate by overlaying text on base image"""
     try:
-        # Use base certificate image with logo
-        base_image_path = 'uploads/certificates/certificate_wapl_id.jpg'
+        # Use base certificate image from static folder (tracked by git)
+        base_image_path = 'static/certificates/certificate_wapl_id.jpg'
         
         if not os.path.exists(base_image_path):
             # Fallback to ReportLab if template missing
