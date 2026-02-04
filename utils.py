@@ -323,10 +323,16 @@ def send_email_simulation(to_email, subject, body):
 def send_email_gmail(to_email, subject, body, html_body=None, attachment_path=None):
     """Send email using Gmail SMTP"""
     try:
+        # Debug logging
+        print(f"📧 Attempting to send email to: {to_email}")
+        print(f"📧 GMAIL_EMAIL configured: {'Yes' if GMAIL_EMAIL else 'No'}")
+        print(f"📧 GMAIL_PASSWORD configured: {'Yes (' + str(len(GMAIL_PASSWORD)) + ' chars)' if GMAIL_PASSWORD else 'No'}")
+        
         # Verify credentials are set
         if not GMAIL_EMAIL or not GMAIL_PASSWORD:
             print("⚠️ WARNING: Gmail credentials not configured!")
-            print("Please set GMAIL_EMAIL and GMAIL_PASSWORD in .env file")
+            print(f"GMAIL_USER/GMAIL_EMAIL: {GMAIL_EMAIL or 'NOT SET'}")
+            print(f"GMAIL_APP_PASSWORD/GMAIL_PASSWORD: {'SET' if GMAIL_PASSWORD else 'NOT SET'}")
             # Fallback to simulation
             send_email_simulation(to_email, subject, body)
             return False
@@ -354,23 +360,28 @@ def send_email_gmail(to_email, subject, body, html_body=None, attachment_path=No
                 message.attach(part)
         
         # Send email via Gmail SMTP
+        print(f"📧 Connecting to smtp.gmail.com:465...")
         smtp_server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        print(f"📧 Logging in as {GMAIL_EMAIL}...")
         smtp_server.login(GMAIL_EMAIL, GMAIL_PASSWORD)
+        print(f"📧 Sending message...")
         smtp_server.send_message(message)
         smtp_server.quit()
         
         print(f"✅ Email sent successfully to {to_email}")
         return True
         
-    except smtplib.SMTPAuthenticationError:
-        print(f"❌ Gmail authentication failed!")
-        print("Please check your GMAIL_EMAIL and GMAIL_PASSWORD in .env file")
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"❌ Gmail authentication failed! Error: {e}")
+        print("Please check your GMAIL_USER and GMAIL_APP_PASSWORD")
         print("Note: Use Gmail App Password, not your regular password")
         print("Generate at: https://myaccount.google.com/apppasswords")
         return False
 
     except Exception as e:
         print(f"❌ Error sending email: {str(e)}")
+        import traceback
+        traceback.print_exc()
         print(f"Falling back to simulation...")
         send_email_simulation(to_email, subject, body)
         return False
