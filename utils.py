@@ -3,6 +3,7 @@ import string
 import qrcode
 from io import BytesIO
 import os
+import socket
 from datetime import datetime, timedelta
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib import colors
@@ -359,27 +360,31 @@ def send_email_gmail(to_email, subject, body, html_body=None, attachment_path=No
                 part.add_header('Content-Disposition', f'attachment; filename= {os.path.basename(attachment_path)}')
                 message.attach(part)
         
-        # Send email via Gmail SMTP
-        print(f"📧 Connecting to smtp.gmail.com:465...")
-        smtp_server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        print(f"📧 Logging in as {GMAIL_EMAIL}...")
+        # Send email via Gmail SMTP with timeout
+        print(f"📧 Connecting to smtp.gmail.com:465...", flush=True)
+        smtp_server = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=30)
+        print(f"📧 Connected! Logging in as {GMAIL_EMAIL}...", flush=True)
         smtp_server.login(GMAIL_EMAIL, GMAIL_PASSWORD)
-        print(f"📧 Sending message...")
+        print(f"📧 Login successful! Sending message...", flush=True)
         smtp_server.send_message(message)
         smtp_server.quit()
         
-        print(f"✅ Email sent successfully to {to_email}")
+        print(f"✅ Email sent successfully to {to_email}", flush=True)
         return True
         
     except smtplib.SMTPAuthenticationError as e:
-        print(f"❌ Gmail authentication failed! Error: {e}")
+        print(f"❌ Gmail authentication failed! Error: {e}", flush=True)
         print("Please check your GMAIL_USER and GMAIL_APP_PASSWORD")
         print("Note: Use Gmail App Password, not your regular password")
         print("Generate at: https://myaccount.google.com/apppasswords")
         return False
+    
+    except socket.timeout:
+        print(f"❌ SMTP connection timeout! Gmail SMTP might be blocked.", flush=True)
+        return False
 
     except Exception as e:
-        print(f"❌ Error sending email: {str(e)}")
+        print(f"❌ Error sending email: {str(e)}", flush=True)
         import traceback
         traceback.print_exc()
         print(f"Falling back to simulation...")
