@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, session, redirect, url_for, rende
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from database import db, get_db_type, is_postgres
-from utils import generate_otp, send_otp_email, send_registration_confirmation_email, sanitize_input, generate_wapl_id
+from utils import generate_otp, send_otp_email, send_registration_confirmation_email, sanitize_input, generate_wapl_id, debug_gmail_connection
 import secrets
 
 auth_bp = Blueprint('auth', __name__)
@@ -552,8 +552,29 @@ def reset_password():
 
         return jsonify({'message': 'Password reset successful. Please login.'}), 200
 
+
     except Exception as e:
         print(f"Reset password error: {e}")
         import traceback
         traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/api/debug/email', methods=['POST'])
+def debug_email():
+    """Debug email configuration"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+            
+        result = debug_gmail_connection(email)
+        
+        if result['success']:
+            return jsonify({'message': 'Email sent successfully', 'details': result}), 200
+        else:
+            return jsonify({'error': 'Email test failed', 'details': result}), 500
+            
+    except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -24,9 +24,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Gmail Configuration
-GMAIL_EMAIL = os.getenv('GMAIL_EMAIL', 'techinfo506168@gmail.com')
-GMAIL_PASSWORD = os.getenv('GMAIL_PASSWORD', '')
+# Gmail Configuration - support both naming conventions
+GMAIL_EMAIL = os.getenv('GMAIL_USER') or os.getenv('GMAIL_EMAIL', '')
+GMAIL_PASSWORD = os.getenv('GMAIL_APP_PASSWORD') or os.getenv('GMAIL_PASSWORD', '')
 MAIL_SENDER_NAME = os.getenv('MAIL_SENDER_NAME', 'WAPL System')
 
 def generate_otp(length=6):
@@ -368,11 +368,62 @@ def send_email_gmail(to_email, subject, body, html_body=None, attachment_path=No
         print("Note: Use Gmail App Password, not your regular password")
         print("Generate at: https://myaccount.google.com/apppasswords")
         return False
+
     except Exception as e:
         print(f"❌ Error sending email: {str(e)}")
         print(f"Falling back to simulation...")
         send_email_simulation(to_email, subject, body)
         return False
+
+
+def debug_gmail_connection(to_email):
+    """Debug Gmail connection and return detailed status"""
+    status = {
+        "success": False,
+        "step": "init",
+        "error": None,
+        "config": {
+            "email_set": bool(GMAIL_EMAIL),
+            "password_set": bool(GMAIL_PASSWORD),
+            "sender_name": MAIL_SENDER_NAME
+        }
+    }
+    
+    try:
+        # Check config
+        if not GMAIL_EMAIL or not GMAIL_PASSWORD:
+            status["step"] = "config_check"
+            status["error"] = "GMAIL_EMAIL or GMAIL_PASSWORD not set in environment"
+            return status
+            
+        status["step"] = "smtp_connect"
+        # Connect to server
+        smtp_server = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10)
+        
+        status["step"] = "login"
+        smtp_server.login(GMAIL_EMAIL, GMAIL_PASSWORD)
+        
+        status["step"] = "prepare_message"
+        # Send test message
+        message = MIMEMultipart()
+        message['From'] = f"{MAIL_SENDER_NAME} <{GMAIL_EMAIL}>"
+        message['To'] = to_email
+        message['Subject'] = "WAPL Debug Email"
+        message.attach(MIMEText("This is a debug email to verify SMTP configuration.", 'plain'))
+        
+        status["step"] = "send_message"
+        smtp_server.send_message(message)
+        smtp_server.quit()
+        
+        status["success"] = True
+        status["step"] = "complete"
+        return status
+        
+    except Exception as e:
+        status["error"] = str(e)
+        import traceback
+        status["traceback"] = traceback.format_exc()
+        return status
 
 
 def send_otp_email(to_email, otp_code, full_name="User"):
