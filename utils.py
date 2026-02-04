@@ -361,8 +361,17 @@ def send_email_gmail(to_email, subject, body, html_body=None, attachment_path=No
                 message.attach(part)
         
         # Send email via Gmail SMTP with timeout
-        print(f"📧 Connecting to smtp.gmail.com:465...", flush=True)
-        smtp_server = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=30)
+        # Try port 587 with STARTTLS first (more compatible with cloud platforms)
+        print(f"📧 Connecting to smtp.gmail.com:587 (STARTTLS)...", flush=True)
+        try:
+            smtp_server = smtplib.SMTP('smtp.gmail.com', 587, timeout=30)
+            smtp_server.ehlo()
+            smtp_server.starttls()
+            smtp_server.ehlo()
+        except Exception as e1:
+            print(f"📧 Port 587 failed ({e1}), trying port 465 (SSL)...", flush=True)
+            smtp_server = smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=30)
+        
         print(f"📧 Connected! Logging in as {GMAIL_EMAIL}...", flush=True)
         smtp_server.login(GMAIL_EMAIL, GMAIL_PASSWORD)
         print(f"📧 Login successful! Sending message...", flush=True)
