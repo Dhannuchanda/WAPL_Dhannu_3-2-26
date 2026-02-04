@@ -14,5 +14,8 @@ qrcode[pil]==7.4.2
 Pillow==10.2.0
 reportlab==4.0.9
 
+# Email
+resend==0.7.2
+
 # Production Server
 gunicorn==21.2.0

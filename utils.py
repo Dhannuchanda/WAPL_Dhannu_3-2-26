@@ -4,6 +4,7 @@ import qrcode
 from io import BytesIO
 import os
 import socket
+import requests as http_requests
 from datetime import datetime, timedelta
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib import colors
@@ -29,6 +30,10 @@ load_dotenv()
 GMAIL_EMAIL = os.getenv('GMAIL_USER') or os.getenv('GMAIL_EMAIL', '')
 GMAIL_PASSWORD = os.getenv('GMAIL_APP_PASSWORD') or os.getenv('GMAIL_PASSWORD', '')
 MAIL_SENDER_NAME = os.getenv('MAIL_SENDER_NAME', 'WAPL System')
+
+# Resend Configuration (for Railway where SMTP is blocked)
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
+RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', 'onboarding@resend.dev')
 
 def generate_otp(length=6):
     """Generate a random OTP"""
@@ -321,18 +326,68 @@ def send_email_simulation(to_email, subject, body):
     print(f"{'='*60}\n")
 
 
+def send_email_resend(to_email, subject, body, html_body=None):
+    """Send email using Resend API (works on Railway where SMTP is blocked)"""
+    if not RESEND_API_KEY:
+        print("📧 Resend API key not configured, skipping...", flush=True)
+        return False
+    
+    try:
+        print(f"📧 Sending via Resend API to: {to_email}", flush=True)
+        
+        payload = {
+            "from": f"{MAIL_SENDER_NAME} <{RESEND_FROM_EMAIL}>",
+            "to": [to_email],
+            "subject": subject,
+        }
+        
+        if html_body:
+            payload["html"] = html_body
+        else:
+            payload["text"] = body
+        
+        response = http_requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            print(f"✅ Email sent successfully via Resend to {to_email}", flush=True)
+            return True
+        else:
+            print(f"❌ Resend API error: {response.status_code} - {response.text}", flush=True)
+            return False
+            
+    except Exception as e:
+        print(f"❌ Resend error: {str(e)}", flush=True)
+        return False
+
+
 def send_email_gmail(to_email, subject, body, html_body=None, attachment_path=None):
-    """Send email using Gmail SMTP"""
+    """Send email - tries Resend API first, then Gmail SMTP, then simulation"""
+    
+    # Try Resend API first (works on Railway where SMTP is blocked)
+    if RESEND_API_KEY:
+        if send_email_resend(to_email, subject, body, html_body):
+            return True
+        print("📧 Resend failed, trying Gmail SMTP...", flush=True)
+    
     try:
         # Debug logging
-        print(f"📧 Attempting to send email to: {to_email}")
-        print(f"📧 GMAIL_EMAIL configured: {'Yes' if GMAIL_EMAIL else 'No'}")
-        print(f"📧 GMAIL_PASSWORD configured: {'Yes (' + str(len(GMAIL_PASSWORD)) + ' chars)' if GMAIL_PASSWORD else 'No'}")
+        print(f"📧 Attempting to send email via Gmail SMTP to: {to_email}", flush=True)
+        print(f"📧 GMAIL_EMAIL configured: {'Yes' if GMAIL_EMAIL else 'No'}", flush=True)
+        print(f"📧 GMAIL_PASSWORD configured: {'Yes (' + str(len(GMAIL_PASSWORD)) + ' chars)' if GMAIL_PASSWORD else 'No'}", flush=True)
         
         # Verify credentials are set
         if not GMAIL_EMAIL or not GMAIL_PASSWORD:
-            print("⚠️ WARNING: Gmail credentials not configured!")
+            print("⚠️ WARNING: Gmail credentials not configured!", flush=True)
             print(f"GMAIL_USER/GMAIL_EMAIL: {GMAIL_EMAIL or 'NOT SET'}")
+            print(f"GMAIL_APP_PASSWORD/GMAIL_PASSWORD: {'SET' if GMAIL_PASSWORD else 'NOT SET'}")
             print(f"GMAIL_APP_PASSWORD/GMAIL_PASSWORD: {'SET' if GMAIL_PASSWORD else 'NOT SET'}")
             # Fallback to simulation
             send_email_simulation(to_email, subject, body)
