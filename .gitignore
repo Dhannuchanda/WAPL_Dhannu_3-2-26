@@ -26,12 +26,7 @@ instance/
 .env
 .env.local
 
-# Uploads (user files)
-uploads/
-*.pdf
-*.jpg
-*.jpeg
-*.png
+
 
 # Old files
 requirements_old.txt
