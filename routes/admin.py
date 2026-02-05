@@ -160,6 +160,13 @@ def admin_hrs():
     return render_template('admin/hrs.html')
 
 
+@admin_bp.route('/secure-admin-panel/wapl/hr/<int:hr_id>')
+@require_admin_auth
+def admin_hr_detail(hr_id):
+    """HR detail view page"""
+    return render_template('admin/hr_detail.html', hr_id=hr_id)
+
+
 @admin_bp.route('/secure-admin-panel/wapl/assign-students')
 @require_admin_auth
 def admin_assign_students():
@@ -481,13 +488,29 @@ def get_student_detail(student_id):
 def create_student():
     """Admin creates a student account directly - ACTIVE status"""
     try:
-        data = request.get_json()
-        email = sanitize_input(data.get('email', '').strip().lower())
-        password = data.get('password', '')
-        full_name = sanitize_input(data.get('fullName', '').strip())
-        phone = sanitize_input(data.get('phone', '').strip())
-        address = sanitize_input(data.get('address', '').strip())
-        domain_ids = data.get('domainIds', [])
+        # Handle both FormData and JSON
+        if request.content_type and 'application/json' in request.content_type:
+            data = request.get_json()
+            email = sanitize_input(data.get('email', '').strip().lower())
+            password = data.get('password', '')
+            full_name = sanitize_input(data.get('fullName', '').strip())
+            phone = sanitize_input(data.get('phone', '').strip())
+            address = sanitize_input(data.get('address', '').strip())
+            domain_ids = data.get('domainIds', [])
+        else:
+            # FormData from the form
+            email = sanitize_input(request.form.get('email', '').strip().lower())
+            password = request.form.get('password', '')
+            full_name = sanitize_input(request.form.get('fullName', '').strip())
+            phone = sanitize_input(request.form.get('phone', '').strip())
+            address = sanitize_input(request.form.get('address', '').strip())
+            # Parse domains from JSON string
+            import json
+            domains_str = request.form.get('domains', '[]')
+            try:
+                domain_ids = json.loads(domains_str)
+            except:
+                domain_ids = []
         
         print(f"📝 Creating student: {email}")
         print(f"📝 Domains: {domain_ids}")
@@ -784,6 +807,30 @@ def get_hrs():
         return jsonify(hrs), 200
     except Exception as e:
         print(f"Error getting HRs: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/hr/<int:hr_id>', methods=['GET'])
+@require_admin_auth
+def get_hr_detail(hr_id):
+    """Get single HR details"""
+    try:
+        hr = db.execute_query("""
+            SELECT 
+                h.*,
+                u.email,
+                (SELECT COUNT(*) FROM students WHERE assigned_hr_id = h.id) as assigned_count
+            FROM hrs h
+            LEFT JOIN users u ON h.user_id = u.id
+            WHERE h.id = ?
+        """, (hr_id,), fetch_one=True)
+        
+        if not hr:
+            return jsonify({'error': 'HR not found'}), 404
+        
+        return jsonify(hr), 200
+    except Exception as e:
+        print(f"Error getting HR detail: {e}")
         return jsonify({'error': str(e)}), 500
 
 
