@@ -1147,7 +1147,7 @@ def get_certificates():
         certificates = db.execute_query(f"""
             SELECT 
                 c.*,
-                s.full_name,
+                s.full_name as student_name,
                 s.wapl_id,
                 {agg_func} as domain_names
             FROM certificates c

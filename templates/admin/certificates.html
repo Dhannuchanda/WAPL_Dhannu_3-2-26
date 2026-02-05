@@ -796,7 +796,7 @@
                 <tr>
                     <td><strong>${cert.student_name || 'N/A'}</strong></td>
                     <td>${cert.wapl_id || 'N/A'}</td>
-                    <td><code style="background: #f0f4ff; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${cert.certificate_id || 'N/A'}</code></td>
+                    <td><code style="background: #f0f4ff; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${cert.certificate_unique_id || 'N/A'}</code></td>
                     <td>${formatDate(cert.generated_on)}</td>
                     <td>
                         <img src="${cert.qr_code_path}" class="qr-code-img" alt="QR Code" 
@@ -804,7 +804,7 @@
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <button onclick="downloadCertificate('${cert.certificate_id}')" class="btn btn-sm btn-success">📥 Download</button>
+                            <button onclick="downloadCertificate('${cert.certificate_unique_id}')" class="btn btn-sm btn-success">📥 Download</button>
                             <button onclick="regenerateCertificate(${cert.student_id})" class="btn btn-sm btn-warning">🔄 Regenerate</button>
                             <button onclick="deleteCertificate(${cert.id}, '${cert.student_name}')" class="btn btn-sm btn-danger">🗑️ Delete</button>
                         </div>
@@ -833,7 +833,7 @@
                     <div class="cert-card-info">
                         <div class="info-row">
                             <span class="info-label">📜 Cert ID:</span>
-                            <span class="info-value"><code style="background: #f0f4ff; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${cert.certificate_id || 'N/A'}</code></span>
+                            <span class="info-value"><code style="background: #f0f4ff; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${cert.certificate_unique_id || 'N/A'}</code></span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">📅 Generated:</span>
@@ -847,7 +847,7 @@
                     </div>
                     
                     <div class="cert-card-actions">
-                        <button onclick="downloadCertificate('${cert.certificate_id}')" class="btn btn-success">📥 Download</button>
+                        <button onclick="downloadCertificate('${cert.certificate_unique_id}')" class="btn btn-success">📥 Download</button>
                         <button onclick="regenerateCertificate(${cert.student_id})" class="btn btn-warning">🔄 Regenerate</button>
                         <button onclick="deleteCertificate(${cert.id}, '${cert.student_name}')" class="btn btn-danger">🗑️ Delete</button>
                     </div>
@@ -866,7 +866,7 @@
             const filtered = allCertificates.filter(cert => 
                 (cert.student_name && cert.student_name.toLowerCase().includes(searchInput)) ||
                 (cert.wapl_id && cert.wapl_id.toLowerCase().includes(searchInput)) ||
-                (cert.certificate_id && cert.certificate_id.toLowerCase().includes(searchInput))
+                (cert.certificate_unique_id && cert.certificate_unique_id.toLowerCase().includes(searchInput))
             );
             
             displayCertificates(filtered);
@@ -875,7 +875,7 @@
         function openQRModal(cert) {
             currentQRData = cert;
             document.getElementById('modalStudentName').textContent = cert.student_name;
-            document.getElementById('modalCertId').textContent = 'Certificate ID: ' + cert.certificate_id;
+            document.getElementById('modalCertId').textContent = 'Certificate ID: ' + cert.certificate_unique_id;
             document.getElementById('modalQRImage').src = cert.qr_code_path;
             document.getElementById('qrModal').style.display = 'block';
         }
@@ -889,7 +889,7 @@
             if (!currentQRData) return;
             const link = document.createElement('a');
             link.href = currentQRData.qr_code_path;
-            link.download = `QR_${currentQRData.certificate_id}.png`;
+            link.download = `QR_${currentQRData.certificate_unique_id}.png`;
             link.click();
         }
 
